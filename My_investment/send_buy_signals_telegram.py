@@ -93,36 +93,52 @@ def score_universe(
     return rows
 
 
-def build_message(top: list[dict], asof: str) -> str:
+def build_market_message(market: str, top: list[dict], asof: str, n: int) -> str:
+    label = "미국 S&P500 시총상위" if market == "US" else "코스피 시총상위"
+    flag = "US" if market == "US" else "KR"
     lines = [
-        f"강한 매수 신호 TOP10 ({asof})",
-        "유니버스: 미국 S&P500 시총상위 + 코스피 시총상위",
+        f"[{flag}] 강한 매수 신호 TOP{n} ({asof})",
+        f"유니버스: {label}",
         "기준: 매수신호 많은 순 · 순점(매수-매도) · 단기이평",
         "",
     ]
     for i, r in enumerate(top, 1):
-        flag = "US" if r["market"] == "US" else "KR"
         sig = ",".join(r["signals"][:4]) if r["signals"] else "-"
         more = f"+{len(r['signals'])-4}" if len(r["signals"]) > 4 else ""
-        lines.append(
-            f"{i:2d}. [{flag}] {r['name'][:14]} ({r['tic']})"
-        )
+        lines.append(f"{i:2d}. {r['name'][:16]} ({r['tic']})")
         lines.append(
             f"    매수{r['buy']} 매도{r['sell']} 순{r['net']:+d}  "
             f"RSI{r['rsi']} 1M{r['m1']:+.1f}%"
         )
         lines.append(f"    {sig}{more}")
-    us_n = sum(1 for r in top if r["market"] == "US")
-    kr_n = len(top) - us_n
-    lines += [
-        "",
-        f"구성: 미국 {us_n} · 국내 {kr_n}",
-        "※ 기술적 신호 참고용. 투자 판단은 본인 책임.",
-    ]
-    return "\n".join(lines)
+    lines += ["", "※ 기술적 신호 참고용. 투자 판단은 본인 책임."]
+    msg = "\n".join(lines)
+    if len(msg) > 3900:
+        msg = msg[:3900] + "\n…(생략)"
+    return msg
+
+
+def pick_top(df: pd.DataFrame, n: int) -> list[dict]:
+    if df.empty:
+        return []
+    strong = df[df["buy"] >= 2].copy()
+    if len(strong) < n:
+        strong = df.copy()
+    return strong.head(n).to_dict("records")
 
 
 def main():
+    import argparse
+
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--top", type=int, default=10, help="시장별 TOP N (기본 10)")
+    ap.add_argument(
+        "--combined",
+        action="store_true",
+        help="미국+국내 합산 TOP만 전송 (기존 방식)",
+    )
+    args = ap.parse_args()
+
     load_dotenv(BASE / ".env")
     token = (os.environ.get("TELEGRAM_BOT_TOKEN") or "").strip()
     chat_id = (os.environ.get("TELEGRAM_CHAT_ID") or "").strip()
@@ -145,11 +161,10 @@ def main():
     hist.update(download_hist(list(kr_yf.values()), start_s, end_s))
     print(f"시세 로드: {len(hist)}종목", flush=True)
 
-    rows = []
-    rows += score_universe(us_items, "US", us_yf, hist)
-    rows += score_universe(kr_items, "KR", kr_yf, hist)
+    us_rows = score_universe(us_items, "US", us_yf, hist)
+    kr_rows = score_universe(kr_items, "KR", kr_yf, hist)
+    rows = us_rows + kr_rows
 
-    # 강한 매수: 매수 신호 우선, 매도 적고 순점 높은 순
     df = pd.DataFrame(rows)
     if df.empty:
         raise SystemExit("신호 계산 결과 없음")
@@ -159,24 +174,54 @@ def main():
         ascending=[False, False, True, False, False],
     ).reset_index(drop=True)
 
-    # 최소 매수 2개 이상인 종목만 (너무 약한 신호 제외)
-    strong = df[df["buy"] >= 2].copy()
-    if len(strong) < 10:
-        strong = df.copy()
-    top = strong.head(10).to_dict("records")
-
     asof = datetime.now().strftime("%Y-%m-%d")
-    msg = build_message(top, asof)
-    print(msg)
-    print("---", flush=True)
+    n = max(1, args.top)
 
-    result = send_telegram(token, chat_id, msg)
-    if not result.get("ok"):
-        raise SystemExit(f"전송 실패: {result}")
+    if args.combined:
+        top = pick_top(df, n)
+        # 하위호환: 합산 1통
+        label_rows = []
+        for i, r in enumerate(top, 1):
+            flag = "US" if r["market"] == "US" else "KR"
+            sig = ",".join(r["signals"][:4]) if r["signals"] else "-"
+            more = f"+{len(r['signals'])-4}" if len(r["signals"]) > 4 else ""
+            label_rows += [
+                f"{i:2d}. [{flag}] {r['name'][:14]} ({r['tic']})",
+                f"    매수{r['buy']} 매도{r['sell']} 순{r['net']:+d}  RSI{r['rsi']} 1M{r['m1']:+.1f}%",
+                f"    {sig}{more}",
+            ]
+        msg = "\n".join(
+            [
+                f"강한 매수 신호 TOP{n} ({asof})",
+                "유니버스: 미국 S&P500 시총상위 + 코스피 시총상위",
+                "기준: 매수신호 많은 순 · 순점(매수-매도) · 단기이평",
+                "",
+                *label_rows,
+                "",
+                "※ 기술적 신호 참고용. 투자 판단은 본인 책임.",
+            ]
+        )
+        print(msg)
+        result = send_telegram(token, chat_id, msg)
+        if not result.get("ok"):
+            raise SystemExit(f"전송 실패: {result}")
+        payload = top
+    else:
+        us_top = pick_top(df[df["market"] == "US"].copy(), n)
+        kr_top = pick_top(df[df["market"] == "KR"].copy(), n)
+        for market, top in (("US", us_top), ("KR", kr_top)):
+            msg = build_market_message(market, top, asof, n)
+            print(msg)
+            print("---", flush=True)
+            result = send_telegram(token, chat_id, msg)
+            if not result.get("ok"):
+                raise SystemExit(f"전송 실패 [{market}]: {result}")
+            print(f"텔레그램 전송 완료 [{market}].", flush=True)
+        payload = {"US": us_top, "KR": kr_top}
+
+    out = BASE / ("_buy_signals_top20.json" if n >= 20 else "_buy_signals_top10.json")
+    out.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     print("텔레그램 전송 완료.", flush=True)
-
-    out = BASE / "_buy_signals_top10.json"
-    out.write_text(json.dumps(top, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 if __name__ == "__main__":

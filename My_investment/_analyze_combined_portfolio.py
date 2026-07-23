@@ -18,6 +18,49 @@ warnings.filterwarnings("ignore")
 BASE = Path(__file__).resolve().parent
 
 
+def _num(v):
+    """숫자 또는 '=123+456' / '=G49' 단순 수식을 평가. 실패 시 None."""
+    if isinstance(v, (int, float)):
+        return float(v)
+    if not isinstance(v, str):
+        return None
+    s = v.strip()
+    if not s:
+        return None
+    if s.startswith("="):
+        expr = s[1:].strip().replace(",", "")
+        # 셀 참조(=G49)는 호출측에서 해석
+        if re.fullmatch(r"[A-Za-z]+\d+", expr):
+            return None
+        if re.fullmatch(r"[\d\.\+\-\*\s]+", expr):
+            try:
+                return float(eval(expr, {"__builtins__": {}}, {}))
+            except Exception:
+                return None
+        return None
+    try:
+        return float(s.replace(",", ""))
+    except Exception:
+        return None
+
+
+def _cell_ref_value(ws_f, ws_d, formula: str):
+    """'=G49' 형태를 같은 시트의 값으로 해석."""
+    if not isinstance(formula, str):
+        return None
+    m = re.fullmatch(r"=([A-Za-z]+)(\d+)", formula.strip())
+    if not m:
+        return None
+    col = openpyxl.utils.column_index_from_string(m.group(1))
+    row = int(m.group(2))
+    v = ws_d.cell(row, col).value
+    n = _num(v)
+    if n is not None:
+        return n
+    v2 = ws_f.cell(row, col).value
+    return _num(v2)
+
+
 def load_holdings(path: Path, src: str):
     wb_f = openpyxl.load_workbook(path, data_only=False)
     wb_d = openpyxl.load_workbook(path, data_only=True)
@@ -45,28 +88,58 @@ def load_holdings(path: Path, src: str):
         qty = ws_d.cell(r, 6).value
         if qty is None:
             qty = ws_f.cell(r, 6).value
-        g = ws_d.cell(r, 7).value
-        h = ws_d.cell(r, 8).value
-        i = ws_d.cell(r, 9).value
-        j = ws_d.cell(r, 10).value
-        if i is None:
-            i = ws_f.cell(r, 9).value
-        if j is None:
-            j = ws_f.cell(r, 10).value
-        if isinstance(i, str):
-            i = None
-        if isinstance(j, str):
-            j = None
+        g_raw = ws_d.cell(r, 7).value
+        if g_raw is None:
+            g_raw = ws_f.cell(r, 7).value
+        h_raw = ws_d.cell(r, 8).value
+        if h_raw is None:
+            h_raw = ws_f.cell(r, 8).value
+        i_raw = ws_d.cell(r, 9).value
+        if i_raw is None:
+            i_raw = ws_f.cell(r, 9).value
+        j_raw = ws_d.cell(r, 10).value
+        if j_raw is None:
+            j_raw = ws_f.cell(r, 10).value
+
+        g = _num(g_raw)
+        if g is None and isinstance(g_raw, str):
+            g = _cell_ref_value(ws_f, ws_d, g_raw)
+        h = _num(h_raw)
+        if h is None and isinstance(h_raw, str):
+            h = _cell_ref_value(ws_f, ws_d, h_raw)
+        i = _num(i_raw)
+        if i is None and isinstance(i_raw, str):
+            i = _cell_ref_value(ws_f, ws_d, i_raw)
+        j = _num(j_raw)
+        if j is None and isinstance(j_raw, str):
+            j = _cell_ref_value(ws_f, ws_d, j_raw)
+
         val = ws_d.cell(r, 11).value
         q = float(qty) if isinstance(qty, (int, float)) else 0.0
+        tic_s = str(tic).strip() if tic else ""
+        name_s = str(name).strip() if name else ""
+        is_cash = tic_s == "현금" or any(
+            k in name_s for k in ("예금", "예수금", "CMA", "MMF", "현금성", "새마을")
+        )
+
         if not isinstance(val, (int, float)) or val <= 0:
-            ip = float(i or 0)
-            jp = float(j or 0)
-            val = ip * q + jp * float(fx) * q
+            # openpyxl 저장 후 data_only 캐시가 비면 K/I 수식이 숫자로 안 나옴.
+            # 현금은 평단(G)=평가액인 경우가 많아 G*수량으로 복구.
+            if is_cash and g is not None:
+                val = g * (q if q else 1.0)
+            else:
+                ip = float(i or 0)
+                jp = float(j or 0)
+                val = ip * q + jp * float(fx) * q
+                # 미국 종목만 J가 있고 I가 비는 경우 등은 위에서 처리.
+                # 그래도 0이면 G/H 원가 쪽으로 한 번 더 시도(현금성).
+                if val <= 0 and g is not None:
+                    val = g * (q if q else 1.0)
+
         cost = 0.0
-        if isinstance(g, (int, float)):
+        if g is not None:
             cost += g * q
-        if isinstance(h, (int, float)):
+        if h is not None:
             cost += h * float(fx) * q
         rows.append(
             {
@@ -74,8 +147,8 @@ def load_holdings(path: Path, src: str):
                 "src": src,
                 "acct": str(acct),
                 "country": str(country or ""),
-                "tic": str(tic).strip() if tic else "",
-                "name": str(name).strip() if name else "",
+                "tic": tic_s,
+                "name": name_s,
                 "qty": q,
                 "val": float(val or 0),
                 "cost": cost,
