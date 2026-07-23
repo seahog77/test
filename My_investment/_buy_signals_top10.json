@@ -1,0 +1,197 @@
+[
+  {
+    "market": "US",
+    "tic": "PG",
+    "name": "P&G",
+    "buy": 6,
+    "sell": 2,
+    "net": 4,
+    "signals": [
+      "GC",
+      "BB회귀",
+      "W패턴",
+      "200일선",
+      "STO_GC",
+      "피보나치"
+    ],
+    "price": 150.32000732421875,
+    "rsi": 54.8,
+    "m1": 1.8,
+    "ma_up": true,
+    "date": "2026-07-22"
+  },
+  {
+    "market": "KR",
+    "tic": "035420",
+    "name": "NAVER",
+    "buy": 5,
+    "sell": 0,
+    "net": 5,
+    "signals": [
+      "RSI탈출",
+      "MACD",
+      "BB회귀",
+      "W패턴",
+      "STO_GC"
+    ],
+    "price": 193000.0,
+    "rsi": 44.6,
+    "m1": -15.9,
+    "ma_up": false,
+    "date": "2026-07-21"
+  },
+  {
+    "market": "KR",
+    "tic": "005490",
+    "name": "POSCO홀딩스",
+    "buy": 5,
+    "sell": 2,
+    "net": 3,
+    "signals": [
+      "지지반등",
+      "RSI탈출",
+      "MACD",
+      "BB회귀",
+      "STO_GC"
+    ],
+    "price": 303000.0,
+    "rsi": 41.6,
+    "m1": -15.0,
+    "ma_up": false,
+    "date": "2026-07-21"
+  },
+  {
+    "market": "KR",
+    "tic": "000810",
+    "name": "삼성화재",
+    "buy": 5,
+    "sell": 3,
+    "net": 2,
+    "signals": [
+      "GC",
+      "RSI탈출",
+      "MACD",
+      "BB회귀",
+      "STO_GC"
+    ],
+    "price": 618000.0,
+    "rsi": 50.0,
+    "m1": -11.7,
+    "ma_up": true,
+    "date": "2026-07-21"
+  },
+  {
+    "market": "KR",
+    "tic": "012330",
+    "name": "현대모비스",
+    "buy": 4,
+    "sell": 0,
+    "net": 4,
+    "signals": [
+      "RSI탈출",
+      "MACD",
+      "BB회귀",
+      "STO_GC"
+    ],
+    "price": 479500.0,
+    "rsi": 44.1,
+    "m1": -21.7,
+    "ma_up": false,
+    "date": "2026-07-21"
+  },
+  {
+    "market": "KR",
+    "tic": "006400",
+    "name": "삼성SDI",
+    "buy": 4,
+    "sell": 0,
+    "net": 4,
+    "signals": [
+      "MACD",
+      "BB회귀",
+      "200일선",
+      "STO_GC"
+    ],
+    "price": 416500.0,
+    "rsi": 35.3,
+    "m1": -25.0,
+    "ma_up": false,
+    "date": "2026-07-21"
+  },
+  {
+    "market": "US",
+    "tic": "XOM",
+    "name": "Exxon",
+    "buy": 4,
+    "sell": 1,
+    "net": 3,
+    "signals": [
+      "GC",
+      "BB회귀",
+      "W패턴",
+      "피보나치"
+    ],
+    "price": 153.8350067138672,
+    "rsi": 80.8,
+    "m1": 11.1,
+    "ma_up": true,
+    "date": "2026-07-22"
+  },
+  {
+    "market": "US",
+    "tic": "CVX",
+    "name": "Chevron",
+    "buy": 4,
+    "sell": 1,
+    "net": 3,
+    "signals": [
+      "GC",
+      "BB회귀",
+      "W패턴",
+      "피보나치"
+    ],
+    "price": 192.30999755859375,
+    "rsi": 89.3,
+    "m1": 9.9,
+    "ma_up": true,
+    "date": "2026-07-22"
+  },
+  {
+    "market": "US",
+    "tic": "MRK",
+    "name": "Merck",
+    "buy": 4,
+    "sell": 2,
+    "net": 2,
+    "signals": [
+      "GC",
+      "BB회귀",
+      "W패턴",
+      "STO_GC"
+    ],
+    "price": 128.4199981689453,
+    "rsi": 54.7,
+    "m1": 11.2,
+    "ma_up": true,
+    "date": "2026-07-22"
+  },
+  {
+    "market": "US",
+    "tic": "HD",
+    "name": "Home Depot",
+    "buy": 4,
+    "sell": 2,
+    "net": 2,
+    "signals": [
+      "BB회귀",
+      "200일선",
+      "STO_GC",
+      "피보나치"
+    ],
+    "price": 332.8599853515625,
+    "rsi": 37.3,
+    "m1": 1.9,
+    "ma_up": false,
+    "date": "2026-07-22"
+  }
+]
