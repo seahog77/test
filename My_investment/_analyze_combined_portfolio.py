@@ -134,8 +134,8 @@ def to_yf(tic, name):
 
 
 def main():
-    h1, _ = load_holdings(BASE / "investment_0719.xlsx", "MAIN")
-    h2, _ = load_holdings(BASE / "investment_0719_W.xlsx", "W")
+    h1, _ = load_holdings(BASE / "investment_0723.xlsx", "MAIN")
+    h2, _ = load_holdings(BASE / "investment_0723_W.xlsx", "W")
     allh = h1 + h2
     for r in allh:
         r["theme"] = classify(r)
