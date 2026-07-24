@@ -14,9 +14,9 @@
         "W패턴",
         "STO_GC"
       ],
-      "price": 130.77000427246094,
-      "rsi": 52.0,
-      "m1": 9.3,
+      "price": 130.47999572753906,
+      "rsi": 51.5,
+      "m1": 9.1,
       "ma_up": true,
       "date": "2026-07-23"
     },
@@ -33,9 +33,9 @@
         "W패턴",
         "피보나치"
       ],
-      "price": 157.5399932861328,
-      "rsi": 82.6,
-      "m1": 12.7,
+      "price": 156.88999938964844,
+      "rsi": 82.2,
+      "m1": 12.3,
       "ma_up": true,
       "date": "2026-07-23"
     },
@@ -52,9 +52,28 @@
         "W패턴",
         "STO_GC"
       ],
-      "price": 1182.9300537109375,
-      "rsi": 43.9,
-      "m1": 6.9,
+      "price": 1185.8699951171875,
+      "rsi": 44.5,
+      "m1": 7.1,
+      "ma_up": false,
+      "date": "2026-07-23"
+    },
+    {
+      "market": "US",
+      "tic": "BRK-B",
+      "name": "Berkshire B",
+      "buy": 4,
+      "sell": 2,
+      "net": 2,
+      "signals": [
+        "BB회귀",
+        "200일선",
+        "STO_GC",
+        "피보나치"
+      ],
+      "price": 490.8500061035156,
+      "rsi": 27.5,
+      "m1": -0.4,
       "ma_up": false,
       "date": "2026-07-23"
     },
@@ -70,9 +89,9 @@
         "BB회귀",
         "W패턴"
       ],
-      "price": 196.39999389648438,
-      "rsi": 89.5,
-      "m1": 11.6,
+      "price": 194.4199981689453,
+      "rsi": 88.8,
+      "m1": 10.5,
       "ma_up": true,
       "date": "2026-07-23"
     },
@@ -81,17 +100,35 @@
       "tic": "COST",
       "name": "Costco",
       "buy": 3,
-      "sell": 2,
-      "net": 1,
+      "sell": 1,
+      "net": 2,
       "signals": [
         "MACD",
         "W패턴",
         "STO_GC"
       ],
-      "price": 918.219970703125,
-      "rsi": 37.1,
-      "m1": -4.1,
+      "price": 926.0599975585938,
+      "rsi": 39.5,
+      "m1": -3.3,
       "ma_up": false,
+      "date": "2026-07-23"
+    },
+    {
+      "market": "US",
+      "tic": "JPM",
+      "name": "JPMorgan",
+      "buy": 3,
+      "sell": 2,
+      "net": 1,
+      "signals": [
+        "MACD",
+        "BB회귀",
+        "W패턴"
+      ],
+      "price": 349.8999938964844,
+      "rsi": 65.6,
+      "m1": 5.2,
+      "ma_up": true,
       "date": "2026-07-23"
     },
     {
@@ -99,16 +136,16 @@
       "tic": "JNJ",
       "name": "Johnson&Johnson",
       "buy": 3,
-      "sell": 3,
-      "net": 0,
+      "sell": 2,
+      "net": 1,
       "signals": [
         "BB회귀",
         "W패턴",
         "STO_GC"
       ],
-      "price": 258.635009765625,
-      "rsi": 45.9,
-      "m1": 8.2,
+      "price": 259.2699890136719,
+      "rsi": 46.5,
+      "m1": 8.4,
       "ma_up": false,
       "date": "2026-07-23"
     },
@@ -123,9 +160,9 @@
         "MACD",
         "STO_GC"
       ],
-      "price": 120.94999694824219,
-      "rsi": 33.8,
-      "m1": -26.5,
+      "price": 120.04000091552734,
+      "rsi": 33.3,
+      "m1": -27.1,
       "ma_up": false,
       "date": "2026-07-23"
     },
@@ -140,8 +177,8 @@
         "BB회귀",
         "W패턴"
       ],
-      "price": 256.90008544921875,
-      "rsi": 46.9,
+      "price": 256.9200134277344,
+      "rsi": 47.0,
       "m1": 10.2,
       "ma_up": true,
       "date": "2026-07-23"
@@ -157,27 +194,10 @@
         "BB회귀",
         "STO_GC"
       ],
-      "price": 68.61000061035156,
-      "rsi": 18.2,
-      "m1": -5.8,
+      "price": 68.88999938964844,
+      "rsi": 19.8,
+      "m1": -5.4,
       "ma_up": false,
-      "date": "2026-07-23"
-    },
-    {
-      "market": "US",
-      "tic": "JPM",
-      "name": "JPMorgan",
-      "buy": 2,
-      "sell": 4,
-      "net": -2,
-      "signals": [
-        "MACD",
-        "W패턴"
-      ],
-      "price": 348.0392150878906,
-      "rsi": 64.3,
-      "m1": 4.6,
-      "ma_up": true,
       "date": "2026-07-23"
     },
     {
@@ -191,9 +211,9 @@
         "GC",
         "STO_GC"
       ],
-      "price": 324.8999938964844,
-      "rsi": 29.9,
-      "m1": -14.9,
+      "price": 319.69000244140625,
+      "rsi": 29.0,
+      "m1": -16.2,
       "ma_up": false,
       "date": "2026-07-23"
     },
@@ -208,9 +228,9 @@
         "MACD",
         "W패턴"
       ],
-      "price": 61.04499816894531,
-      "rsi": 62.4,
-      "m1": 5.4,
+      "price": 61.279998779296875,
+      "rsi": 64.0,
+      "m1": 5.8,
       "ma_up": true,
       "date": "2026-07-23"
     },
@@ -225,10 +245,26 @@
         "GC",
         "STO_GC"
       ],
-      "price": 146.36000061035156,
-      "rsi": 40.9,
-      "m1": -3.0,
-      "ma_up": false,
+      "price": 146.97000122070312,
+      "rsi": 41.9,
+      "m1": -2.6,
+      "ma_up": true,
+      "date": "2026-07-23"
+    },
+    {
+      "market": "US",
+      "tic": "AVGO",
+      "name": "Broadcom",
+      "buy": 1,
+      "sell": 1,
+      "net": 0,
+      "signals": [
+        "GC"
+      ],
+      "price": 392.4700012207031,
+      "rsi": 62.5,
+      "m1": 3.2,
+      "ma_up": true,
       "date": "2026-07-23"
     },
     {
@@ -241,25 +277,9 @@
       "signals": [
         "GC"
       ],
-      "price": 209.16000366210938,
-      "rsi": 62.6,
-      "m1": 4.6,
-      "ma_up": true,
-      "date": "2026-07-23"
-    },
-    {
-      "market": "US",
-      "tic": "AVGO",
-      "name": "Broadcom",
-      "buy": 1,
-      "sell": 3,
-      "net": -2,
-      "signals": [
-        "GC"
-      ],
-      "price": 391.0559997558594,
-      "rsi": 61.8,
-      "m1": 2.9,
+      "price": 208.75999450683594,
+      "rsi": 62.1,
+      "m1": 4.4,
       "ma_up": true,
       "date": "2026-07-23"
     },
@@ -273,9 +293,9 @@
       "signals": [
         "STO_GC"
       ],
-      "price": 420.7799987792969,
-      "rsi": 47.5,
-      "m1": 2.8,
+      "price": 423.55999755859375,
+      "rsi": 49.0,
+      "m1": 3.5,
       "ma_up": true,
       "date": "2026-07-23"
     },
@@ -289,9 +309,9 @@
       "signals": [
         "STO_GC"
       ],
-      "price": 542.1500244140625,
-      "rsi": 54.5,
-      "m1": 4.3,
+      "price": 539.6900024414062,
+      "rsi": 54.0,
+      "m1": 3.8,
       "ma_up": false,
       "date": "2026-07-23"
     },
@@ -305,9 +325,9 @@
       "signals": [
         "STO_GC"
       ],
-      "price": 325.4501037597656,
-      "rsi": 26.3,
-      "m1": 0.3,
+      "price": 324.7099914550781,
+      "rsi": 26.0,
+      "m1": 0.1,
       "ma_up": false,
       "date": "2026-07-23"
     },
@@ -321,25 +341,9 @@
       "signals": [
         "MACD"
       ],
-      "price": 107.92500305175781,
-      "rsi": 39.6,
-      "m1": -9.6,
-      "ma_up": false,
-      "date": "2026-07-23"
-    },
-    {
-      "market": "US",
-      "tic": "BRK-B",
-      "name": "Berkshire B",
-      "buy": 1,
-      "sell": 4,
-      "net": -3,
-      "signals": [
-        "STO_GC"
-      ],
-      "price": 489.3699951171875,
-      "rsi": 24.6,
-      "m1": -0.7,
+      "price": 108.4000015258789,
+      "rsi": 40.6,
+      "m1": -9.2,
       "ma_up": false,
       "date": "2026-07-23"
     }
@@ -347,370 +351,365 @@
   "KR": [
     {
       "market": "KR",
-      "tic": "012330",
-      "name": "현대모비스",
-      "buy": 5,
-      "sell": 0,
-      "net": 5,
-      "signals": [
-        "RSI탈출",
-        "MACD",
-        "BB회귀",
-        "W패턴",
-        "STO_GC"
-      ],
-      "price": 513000.0,
-      "rsi": 54.7,
-      "m1": -9.8,
-      "ma_up": false,
-      "date": "2026-07-22"
-    },
-    {
-      "market": "KR",
       "tic": "009540",
       "name": "HD한국조선해양",
-      "buy": 5,
+      "buy": 7,
       "sell": 0,
-      "net": 5,
-      "signals": [
-        "RSI탈출",
-        "MACD",
-        "BB회귀",
-        "W패턴",
-        "STO_GC"
-      ],
-      "price": 353500.0,
-      "rsi": 48.2,
-      "m1": -11.1,
-      "ma_up": false,
-      "date": "2026-07-22"
-    },
-    {
-      "market": "KR",
-      "tic": "035420",
-      "name": "NAVER",
-      "buy": 5,
-      "sell": 0,
-      "net": 5,
-      "signals": [
-        "RSI탈출",
-        "MACD",
-        "BB회귀",
-        "W패턴",
-        "STO_GC"
-      ],
-      "price": 196900.0,
-      "rsi": 49.6,
-      "m1": -11.3,
-      "ma_up": false,
-      "date": "2026-07-22"
-    },
-    {
-      "market": "KR",
-      "tic": "000810",
-      "name": "삼성화재",
-      "buy": 5,
-      "sell": 3,
-      "net": 2,
+      "net": 7,
       "signals": [
         "GC",
         "RSI탈출",
         "MACD",
         "BB회귀",
-        "STO_GC"
+        "W패턴",
+        "STO_GC",
+        "피보나치"
       ],
-      "price": 630000.0,
-      "rsi": 50.9,
-      "m1": -8.0,
+      "price": 381500.0,
+      "rsi": 57.0,
+      "m1": 3.7,
       "ma_up": true,
-      "date": "2026-07-22"
+      "date": "2026-07-24"
     },
     {
       "market": "KR",
-      "tic": "006400",
-      "name": "삼성SDI",
+      "tic": "207940",
+      "name": "삼성바이오로직스",
+      "buy": 5,
+      "sell": 2,
+      "net": 3,
+      "signals": [
+        "GC",
+        "MACD",
+        "BB회귀",
+        "W패턴",
+        "피보나치"
+      ],
+      "price": 1486000.0,
+      "rsi": 56.5,
+      "m1": 7.3,
+      "ma_up": true,
+      "date": "2026-07-24"
+    },
+    {
+      "market": "KR",
+      "tic": "068270",
+      "name": "셀트리온",
+      "buy": 5,
+      "sell": 2,
+      "net": 3,
+      "signals": [
+        "MACD",
+        "BB회귀",
+        "W패턴",
+        "200일선",
+        "STO_GC"
+      ],
+      "price": 177100.0,
+      "rsi": 40.8,
+      "m1": 2.5,
+      "ma_up": false,
+      "date": "2026-07-24"
+    },
+    {
+      "market": "KR",
+      "tic": "012450",
+      "name": "한화에어로스페이스",
       "buy": 4,
       "sell": 0,
       "net": 4,
       "signals": [
         "MACD",
         "BB회귀",
-        "200일선",
+        "W패턴",
         "STO_GC"
       ],
-      "price": 419000.0,
-      "rsi": 34.9,
-      "m1": -21.4,
+      "price": 1020000.0,
+      "rsi": 37.7,
+      "m1": -6.8,
       "ma_up": false,
-      "date": "2026-07-22"
+      "date": "2026-07-24"
     },
     {
       "market": "KR",
-      "tic": "373220",
-      "name": "LG에너지솔루션",
+      "tic": "329180",
+      "name": "HD현대중공업",
       "buy": 4,
-      "sell": 1,
-      "net": 3,
-      "signals": [
-        "RSI탈출",
-        "MACD",
-        "BB회귀",
-        "STO_GC"
-      ],
-      "price": 321000.0,
-      "rsi": 38.8,
-      "m1": -16.7,
-      "ma_up": false,
-      "date": "2026-07-22"
-    },
-    {
-      "market": "KR",
-      "tic": "034730",
-      "name": "SK",
-      "buy": 3,
       "sell": 0,
-      "net": 3,
+      "net": 4,
       "signals": [
+        "MACD",
         "BB회귀",
         "W패턴",
         "STO_GC"
       ],
-      "price": 624000.0,
-      "rsi": 34.9,
-      "m1": -14.5,
+      "price": 500000.0,
+      "rsi": 33.1,
+      "m1": -14.8,
       "ma_up": false,
-      "date": "2026-07-22"
+      "date": "2026-07-24"
     },
     {
       "market": "KR",
-      "tic": "005935",
-      "name": "삼성전자우",
-      "buy": 3,
-      "sell": 0,
-      "net": 3,
+      "tic": "035420",
+      "name": "NAVER",
+      "buy": 4,
+      "sell": 2,
+      "net": 2,
       "signals": [
-        "RSI탈출",
-        "BB회귀",
+        "GC",
+        "MACD",
+        "W패턴",
         "STO_GC"
       ],
-      "price": 185100.0,
-      "rsi": 43.4,
-      "m1": -17.4,
-      "ma_up": false,
-      "date": "2026-07-22"
+      "price": 207500.0,
+      "rsi": 56.7,
+      "m1": 4.1,
+      "ma_up": true,
+      "date": "2026-07-24"
     },
     {
       "market": "KR",
-      "tic": "066570",
-      "name": "LG전자",
-      "buy": 3,
-      "sell": 0,
-      "net": 3,
+      "tic": "012330",
+      "name": "현대모비스",
+      "buy": 4,
+      "sell": 2,
+      "net": 2,
       "signals": [
-        "RSI탈출",
-        "BB회귀",
+        "GC",
+        "MACD",
+        "W패턴",
         "STO_GC"
       ],
-      "price": 182700.0,
-      "rsi": 44.4,
-      "m1": -19.7,
-      "ma_up": false,
-      "date": "2026-07-22"
+      "price": 496000.0,
+      "rsi": 50.4,
+      "m1": -2.6,
+      "ma_up": true,
+      "date": "2026-07-24"
     },
     {
       "market": "KR",
       "tic": "010120",
       "name": "LS ELECTRIC",
       "buy": 3,
-      "sell": 0,
-      "net": 3,
+      "sell": 1,
+      "net": 2,
       "signals": [
-        "BB회귀",
-        "STO_GC",
-        "피보나치"
-      ],
-      "price": 190600.0,
-      "rsi": 28.2,
-      "m1": -22.2,
-      "ma_up": false,
-      "date": "2026-07-22"
-    },
-    {
-      "market": "KR",
-      "tic": "005930",
-      "name": "삼성전자",
-      "buy": 3,
-      "sell": 0,
-      "net": 3,
-      "signals": [
-        "BB회귀",
-        "STO_GC",
-        "피보나치"
-      ],
-      "price": 260500.0,
-      "rsi": 37.5,
-      "m1": -26.3,
-      "ma_up": false,
-      "date": "2026-07-22"
-    },
-    {
-      "market": "KR",
-      "tic": "042660",
-      "name": "한화오션",
-      "buy": 3,
-      "sell": 0,
-      "net": 3,
-      "signals": [
-        "BB회귀",
+        "MACD",
         "W패턴",
         "STO_GC"
       ],
-      "price": 83900.0,
-      "rsi": 36.9,
-      "m1": -28.0,
+      "price": 215500.0,
+      "rsi": 46.0,
+      "m1": -4.0,
       "ma_up": false,
-      "date": "2026-07-22"
+      "date": "2026-07-24"
     },
     {
       "market": "KR",
-      "tic": "005380",
-      "name": "현대차",
+      "tic": "005490",
+      "name": "POSCO홀딩스",
       "buy": 3,
-      "sell": 0,
-      "net": 3,
+      "sell": 1,
+      "net": 2,
       "signals": [
-        "BB회귀",
-        "200일선",
+        "MACD",
+        "W패턴",
         "STO_GC"
       ],
-      "price": 418000.0,
-      "rsi": 31.8,
-      "m1": -28.1,
+      "price": 316500.0,
+      "rsi": 48.3,
+      "m1": -4.5,
       "ma_up": false,
-      "date": "2026-07-22"
+      "date": "2026-07-24"
     },
     {
       "market": "KR",
-      "tic": "032830",
-      "name": "삼성생명",
+      "tic": "000810",
+      "name": "삼성화재",
       "buy": 3,
-      "sell": 0,
-      "net": 3,
-      "signals": [
-        "BB회귀",
-        "STO_GC",
-        "피보나치"
-      ],
-      "price": 320000.0,
-      "rsi": 34.8,
-      "m1": -29.0,
-      "ma_up": false,
-      "date": "2026-07-22"
-    },
-    {
-      "market": "KR",
-      "tic": "298040",
-      "name": "효성중공업",
-      "buy": 3,
-      "sell": 0,
-      "net": 3,
-      "signals": [
-        "BB회귀",
-        "200일선",
-        "STO_GC"
-      ],
-      "price": 2679000.0,
-      "rsi": 26.3,
-      "m1": -30.1,
-      "ma_up": false,
-      "date": "2026-07-22"
-    },
-    {
-      "market": "KR",
-      "tic": "009150",
-      "name": "삼성전기",
-      "buy": 3,
-      "sell": 0,
-      "net": 3,
-      "signals": [
-        "BB회귀",
-        "STO_GC",
-        "피보나치"
-      ],
-      "price": 1345000.0,
-      "rsi": 23.8,
-      "m1": -39.6,
-      "ma_up": false,
-      "date": "2026-07-22"
-    },
-    {
-      "market": "KR",
-      "tic": "000270",
-      "name": "기아",
-      "buy": 3,
-      "sell": 3,
-      "net": 0,
+      "sell": 4,
+      "net": -1,
       "signals": [
         "GC",
         "MACD",
-        "BB회귀"
+        "STO_GC"
       ],
-      "price": 146800.0,
-      "rsi": 53.4,
-      "m1": -3.0,
-      "ma_up": true,
-      "date": "2026-07-22"
+      "price": 627000.0,
+      "rsi": 48.5,
+      "m1": -1.4,
+      "ma_up": false,
+      "date": "2026-07-24"
+    },
+    {
+      "market": "KR",
+      "tic": "373220",
+      "name": "LG에너지솔루션",
+      "buy": 2,
+      "sell": 1,
+      "net": 1,
+      "signals": [
+        "MACD",
+        "STO_GC"
+      ],
+      "price": 335000.0,
+      "rsi": 40.5,
+      "m1": -8.3,
+      "ma_up": false,
+      "date": "2026-07-24"
+    },
+    {
+      "market": "KR",
+      "tic": "006400",
+      "name": "삼성SDI",
+      "buy": 2,
+      "sell": 1,
+      "net": 1,
+      "signals": [
+        "MACD",
+        "STO_GC"
+      ],
+      "price": 448000.0,
+      "rsi": 46.5,
+      "m1": -8.4,
+      "ma_up": false,
+      "date": "2026-07-24"
+    },
+    {
+      "market": "KR",
+      "tic": "034730",
+      "name": "SK",
+      "buy": 2,
+      "sell": 1,
+      "net": 1,
+      "signals": [
+        "W패턴",
+        "STO_GC"
+      ],
+      "price": 640000.0,
+      "rsi": 44.0,
+      "m1": -10.1,
+      "ma_up": false,
+      "date": "2026-07-24"
     },
     {
       "market": "KR",
       "tic": "267260",
       "name": "HD현대일렉트릭",
       "buy": 2,
-      "sell": 0,
-      "net": 2,
+      "sell": 1,
+      "net": 1,
       "signals": [
-        "BB회귀",
+        "MACD",
         "STO_GC"
       ],
-      "price": 795000.0,
-      "rsi": 25.7,
-      "m1": -23.0,
+      "price": 826000.0,
+      "rsi": 38.0,
+      "m1": -11.8,
       "ma_up": false,
-      "date": "2026-07-22"
+      "date": "2026-07-24"
+    },
+    {
+      "market": "KR",
+      "tic": "066570",
+      "name": "LG전자",
+      "buy": 2,
+      "sell": 1,
+      "net": 1,
+      "signals": [
+        "MACD",
+        "STO_GC"
+      ],
+      "price": 175800.0,
+      "rsi": 43.0,
+      "m1": -14.0,
+      "ma_up": false,
+      "date": "2026-07-24"
+    },
+    {
+      "market": "KR",
+      "tic": "042660",
+      "name": "한화오션",
+      "buy": 2,
+      "sell": 1,
+      "net": 1,
+      "signals": [
+        "MACD",
+        "STO_GC"
+      ],
+      "price": 89750.0,
+      "rsi": 38.8,
+      "m1": -15.3,
+      "ma_up": false,
+      "date": "2026-07-24"
     },
     {
       "market": "KR",
       "tic": "034020",
       "name": "두산에너빌리티",
       "buy": 2,
-      "sell": 0,
-      "net": 2,
+      "sell": 1,
+      "net": 1,
       "signals": [
-        "BB회귀",
+        "MACD",
         "STO_GC"
       ],
-      "price": 69200.0,
-      "rsi": 27.3,
-      "m1": -26.5,
+      "price": 72300.0,
+      "rsi": 34.5,
+      "m1": -20.2,
       "ma_up": false,
-      "date": "2026-07-22"
+      "date": "2026-07-24"
     },
     {
       "market": "KR",
-      "tic": "329180",
-      "name": "HD현대중공업",
+      "tic": "005380",
+      "name": "현대차",
       "buy": 2,
-      "sell": 0,
-      "net": 2,
+      "sell": 1,
+      "net": 1,
       "signals": [
-        "BB회귀",
+        "MACD",
         "STO_GC"
       ],
-      "price": 464500.0,
-      "rsi": 17.4,
-      "m1": -27.0,
+      "price": 403500.0,
+      "rsi": 29.7,
+      "m1": -20.7,
       "ma_up": false,
-      "date": "2026-07-22"
+      "date": "2026-07-24"
+    },
+    {
+      "market": "KR",
+      "tic": "298040",
+      "name": "효성중공업",
+      "buy": 2,
+      "sell": 2,
+      "net": 0,
+      "signals": [
+        "MACD",
+        "STO_GC"
+      ],
+      "price": 2752000.0,
+      "rsi": 36.4,
+      "m1": -17.9,
+      "ma_up": false,
+      "date": "2026-07-24"
+    },
+    {
+      "market": "KR",
+      "tic": "000270",
+      "name": "기아",
+      "buy": 2,
+      "sell": 4,
+      "net": -2,
+      "signals": [
+        "GC",
+        "MACD"
+      ],
+      "price": 142500.0,
+      "rsi": 43.9,
+      "m1": 2.6,
+      "ma_up": false,
+      "date": "2026-07-24"
     }
   ]
 }
