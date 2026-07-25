@@ -12,6 +12,6 @@ You are a Cloud Agent. Run the daily portfolio pipeline and persist Excel update
 
 ## Expected Telegram messages
 - Portfolio summary (MAIN + W)
-- US buy-signal TOP20
-- KR buy-signal TOP20
+- US buy-signal TOP20 (technical + EPS/PER/PBR/revenue & earnings growth)
+- KR buy-signal TOP20 (same fundamental-aware ranking)
 - Market news summary
