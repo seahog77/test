@@ -4,7 +4,7 @@ from PyInstaller.utils.hooks import collect_all
 
 datas = []
 binaries = []
-hiddenimports = ['update_prices', 'add_monthly_dividend_tab', 'update_amount_auto', 'app_paths']
+hiddenimports = ['update_prices', 'add_monthly_dividend_tab', 'app_paths', 'update_amount_auto']
 hiddenimports += collect_submodules('yfinance')
 hiddenimports += collect_submodules('pandas')
 tmp_ret = collect_all('tkinter')

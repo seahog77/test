@@ -2,6 +2,10 @@
 
 You are a Cloud Agent. Run the daily portfolio pipeline and persist Excel updates.
 
+## Workbooks
+- MAIN: `investment_0801.xlsx`
+- W: `investment_0723_W.xlsx` (unchanged name)
+
 ## Steps
 1. Ensure deps: `pip install -q openpyxl pandas yfinance requests python-dotenv finance-datareader`
 2. From `My_investment/`, run:

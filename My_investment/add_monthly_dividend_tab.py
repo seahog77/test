@@ -73,11 +73,32 @@ def clean_name(name):
     return n.strip()
 
 
+# 상장 직후 등 이력이 짧아도 월배당으로 볼 종목 (한국 티커)
+FORCE_MONTHLY_TICKERS = {
+    "0219E0",  # KODEX 200커버드콜액티브
+}
+
+
+def looks_monthly_payer(ticker, name: str) -> bool:
+    """월배당·커버드콜(위클리/데일리/타겟) 추정."""
+    t = str(ticker or "").strip().upper()
+    if t in FORCE_MONTHLY_TICKERS:
+        return True
+    n = str(name or "")
+    if "월배당" in n:
+        return True
+    if "커버드콜" in n or "커버드" in n:
+        return True
+    if any(k in n for k in ("위클리", "데일리", "타켓커버드", "타겟커버드")):
+        return True
+    return False
+
+
 def to_yf_ticker(ticker, country):
     t = str(ticker).strip()
     if country == "미국":
         return t
-    # 한국 숫자/알파벳 혼합 코드 (0008S0 등)
+    # 한국 숫자/알파벳 혼합 코드 (0008S0, 0219E0 등)
     if re.fullmatch(r"\d{6}", t):
         return f"{t}.KS"
     if re.fullmatch(r"[0-9A-Za-z]{6}", t):
@@ -85,6 +106,16 @@ def to_yf_ticker(ticker, country):
     if t.replace(".", "").isdigit():
         return f"{str(int(float(t))).zfill(6)}.KS"
     return f"{t}.KS"
+
+
+def _strip_tz(index):
+    """tz-aware DatetimeIndex → naive (버전별 API 호환)."""
+    if getattr(index, "tz", None) is None:
+        return index
+    try:
+        return index.tz_localize(None)
+    except TypeError:
+        return index.tz_convert("UTC").tz_localize(None)
 
 
 def typical_payday(year, month, sample_dates):
@@ -238,8 +269,9 @@ def build_records(holdings, fx, year=YEAR):
         yf_t = to_yf_ticker(ticker, country)
         try:
             divs = yf.Ticker(yf_t).dividends
-            if getattr(divs.index, "tz", None) is not None:
-                divs.index = divs.index.tz_localize(None)
+            if len(divs) and getattr(divs.index, "tz", None) is not None:
+                divs = divs.copy()
+                divs.index = _strip_tz(divs.index)
         except Exception as e:
             print(f"  skip {yf_t}: {e}")
             divs = pd.Series(dtype=float)
@@ -265,19 +297,23 @@ def build_records(holdings, fx, year=YEAR):
         sample_dates = list(hist_df["date"].dt.date)
 
         last6 = divs[divs.index >= pd.Timestamp(f"{year}-01-01") - pd.DateOffset(months=6)]
+        force_monthly = looks_monthly_payer(ticker, name)
         if len(last6) >= 2:
             l6 = last6.reset_index()
             l6.columns = ["date", "amt"]
             l6["mk"] = l6["date"].dt.to_period("M")
             recent_ps = l6.groupby("mk")["amt"].sum().mean()
-            is_monthly = len(l6.groupby("mk")) >= 8
+            is_monthly = force_monthly or len(l6.groupby("mk")) >= 8
             freq = "월배당" if is_monthly else "분기+"
         else:
-            recent_ps = float(last6.mean()) if len(last6) else 0.0
-            is_monthly = False
-            freq = "연/반기"
+            # 신규 상장 월배당(예: 0219E0) — 이력이 1건이어도 최근 주당배당으로 월 예측
+            recent_ps = float(last6.iloc[-1]) if len(last6) else float(divs.iloc[-1])
+            is_monthly = force_monthly
+            freq = "월배당" if is_monthly else "연/반기"
 
         annual_est = 0.0
+        first_hist_month = int(min(month_pattern.index)) if len(month_pattern) else None
+        short_hist = force_monthly and len(month_pattern) < 3
         for m in range(1, 13):
             month_start = pd.Timestamp(f"{year}-{m:02d}-01")
             month_end = month_start + pd.DateOffset(months=1)
@@ -291,6 +327,9 @@ def build_records(holdings, fx, year=YEAR):
                 pay_date = typical_payday(year, m, sample_dates)
                 is_predict = True
             elif is_monthly and recent_ps > 0:
+                # 신규 월배당(이력 짧음): 첫 배당월 이전은 예측하지 않음
+                if short_hist and first_hist_month is not None and m < first_hist_month:
+                    continue
                 per_share = float(recent_ps)
                 pay_date = typical_payday(year, m, sample_dates)
                 is_predict = True
