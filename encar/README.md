@@ -10,9 +10,22 @@
 ## 실행
 
 ```bash
+# 1) 매물 전체 수집
 python3 encar/fetch_acc_epb_listings.py
+
+# 2) 색상·성능점검·보험이력공개여부 보강
+python3 encar/enrich_listings.py
 ```
 
 생성 파일:
 - `encar_adaptive_cruise_autohold.xlsx` (안내 / 매물목록 / 모델별요약)
 - `encar_adaptive_cruise_autohold.jsonl`
+
+## 추가 컬럼
+
+| 컬럼 | 설명 |
+|------|------|
+| 색상 | 차량 외장색 |
+| 성능점검여부 | 성능점검 자료 공개 여부 (Y/N) |
+| 보험이력공개여부 | 보험이력 열람 가능 여부 (Y/N) |
+| 보험사고건수 | 엔카 상세 API가 로그인 필요 → 공개 수집 불가(공란) |

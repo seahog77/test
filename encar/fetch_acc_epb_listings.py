@@ -118,6 +118,7 @@ def flatten_car(car: dict[str, Any], car_type: str) -> dict[str, Any]:
         if not photo.lower().endswith((".jpg", ".jpeg", ".png", ".webp")):
             photo = photo.rstrip("_") + "_001.jpg"
 
+    conditions = set(car.get("Condition") or [])
     return {
         "매물ID": str(cid),
         "차종구분": car_type,
@@ -130,11 +131,15 @@ def flatten_car(car: dict[str, Any], car_type: str) -> dict[str, Any]:
         "주행거리_km": car.get("Mileage"),
         "가격_만원": car.get("Price"),
         "연료": car.get("FuelType"),
+        "색상": car.get("Color") or car.get("colorName") or "",
         "판매방식": car.get("SellType"),
         "지역": car.get("OfficeCityState"),
         "엔카서비스": ",".join(car.get("ServiceMark") or []),
         "신뢰": ",".join(car.get("Trust") or []),
         "성능조건": ",".join(car.get("Condition") or []),
+        "성능점검여부": "Y" if "Inspection" in conditions else "N",
+        "보험이력공개여부": "Y" if "Record" in conditions else "N",
+        "보험사고건수": "",  # 로그인(보험개발원 연동) 필요 — enrich에서 보강 시도
         "어댑티브크루즈": "Y",
         "EPB_오토홀드대체": "Y",
         "링크": f"https://fem.encar.com/cars/detail/{cid}",
