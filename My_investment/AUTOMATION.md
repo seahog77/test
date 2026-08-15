@@ -24,4 +24,5 @@ python -X utf8 daily_portfolio_report.py --top 10
 
 ## 주의
 - 현금/CMA 행은 엑셀 수식이므로, 분석 시 `_analyze_combined_portfolio.py` 의 수식 파싱을 유지할 것.
+- 포트폴리오 텔레그램에 **이전 전송 대비 증감(만원 단위)** 이 포함된다. 기준값은 `_last_telegram_portfolio.json` 에 저장되므로 커밋·push 할 것.
 - 실패 시 `daily_portfolio_report.py` 가 텔레그램으로 에러 요약을 보낸다.
