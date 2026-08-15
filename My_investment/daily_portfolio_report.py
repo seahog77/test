@@ -2,7 +2,7 @@
 """
 매일 포트폴리오 리포트 파이프라인
 
-1) investment_0801.xlsx / investment_0723_W.xlsx 시세·금액순·배당 갱신
+1) investment_0815.xlsx / investment_0723_W.xlsx 시세·금액순·배당 갱신
 2) 통합 포트폴리오 분석 → 텔레그램
 3) 미국/한국 매수신호 TOP20 → 텔레그램
 4) 주요 경제뉴스 → 텔레그램
@@ -26,7 +26,7 @@ from send_portfolio_telegram import load_dotenv, send_telegram
 
 safe_reconfigure_stdio()
 BASE = app_dir()
-MAIN_XLSX = BASE / "investment_0801.xlsx"
+MAIN_XLSX = BASE / "investment_0815.xlsx"
 W_XLSX = BASE / "investment_0723_W.xlsx"
 
 
