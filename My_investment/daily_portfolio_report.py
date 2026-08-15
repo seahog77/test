@@ -2,15 +2,15 @@
 """
 매일 포트폴리오 리포트 파이프라인
 
-1) investment_0801.xlsx / investment_0723_W.xlsx 시세·금액순·배당 갱신
+1) investment_0815.xlsx / investment_0723_W.xlsx 시세·금액순·배당 갱신
 2) 통합 포트폴리오 분석 → 텔레그램
-3) 미국/한국 매수신호 TOP20 → 텔레그램
+3) 미국/한국 매수신호 TOP10 → 텔레그램
 4) 주요 경제뉴스 → 텔레그램
 
 사용:
   python daily_portfolio_report.py
   python daily_portfolio_report.py --skip-update   # 시세갱신 생략
-  python daily_portfolio_report.py --top 20
+  python daily_portfolio_report.py --top 10
 """
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ from send_portfolio_telegram import load_dotenv, send_telegram
 
 safe_reconfigure_stdio()
 BASE = app_dir()
-MAIN_XLSX = BASE / "investment_0801.xlsx"
+MAIN_XLSX = BASE / "investment_0815.xlsx"
 W_XLSX = BASE / "investment_0723_W.xlsx"
 
 
@@ -70,7 +70,7 @@ def main() -> int:
     ap.add_argument("--skip-portfolio", action="store_true", help="포트폴리오 요약 생략")
     ap.add_argument("--skip-signals", action="store_true", help="매수신호 생략")
     ap.add_argument("--skip-news", action="store_true", help="뉴스 생략")
-    ap.add_argument("--top", type=int, default=20, help="시장별 매수신호 TOP N")
+    ap.add_argument("--top", type=int, default=10, help="시장별 매수신호 TOP N")
     ap.add_argument("--year", type=int, default=datetime.now().year, help="배당 연도")
     args = ap.parse_args()
 

@@ -21,6 +21,7 @@ from pathlib import Path
 
 BASE = Path(__file__).resolve().parent
 ANALYSIS = BASE / "_portfolio_analysis.json"
+LAST_SENT = BASE / "_last_telegram_portfolio.json"
 
 
 def load_dotenv(path: Path) -> None:
@@ -44,7 +45,50 @@ def won(n: float) -> str:
     return f"{n:,.0f}"
 
 
-def build_message(d: dict) -> str:
+def man(n: float) -> str:
+    """원 금액을 만원 단위 정수로 (부호 포함). 예: +234만, -12만"""
+    v = int(round(float(n) / 1e4))
+    return f"{v:+,}만"
+
+
+def load_last_sent() -> dict | None:
+    if not LAST_SENT.exists():
+        return None
+    try:
+        return json.loads(LAST_SENT.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def save_last_sent(d: dict) -> None:
+    from datetime import datetime
+
+    payload = {
+        "sent_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "asof": d.get("asof"),
+        "total": float(d["total"]),
+        "main_total": float(d["main_total"]),
+        "w_total": float(d["w_total"]),
+    }
+    LAST_SENT.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+
+def delta_line(d: dict, prev: dict | None) -> str:
+    if not prev:
+        return "이전 전송 대비: (첫 전송 · 비교 기준 없음)"
+    d_total = float(d["total"]) - float(prev["total"])
+    d_main = float(d["main_total"]) - float(prev["main_total"])
+    d_w = float(d["w_total"]) - float(prev["w_total"])
+    when = prev.get("sent_at") or prev.get("asof") or "?"
+    return (
+        f"이전 전송 대비 {man(d_total)} "
+        f"(MAIN {man(d_main)} · W {man(d_w)}) · 기준 {when}"
+    )
+
+
+def build_message(d: dict, prev: dict | None = None) -> str:
     themes = d.get("theme") or []
     top_theme = ", ".join(f"{t['name']} {t['pct']:.0f}%" for t in themes[:4])
     top = (d.get("top_tickers") or [])[:5]
@@ -79,6 +123,7 @@ def build_message(d: dict) -> str:
         f"📊 통합 포트폴리오 요약 ({d.get('asof', '')})",
         "",
         f"합산 {won(d['total'])} (MAIN {won(d['main_total'])} + W {won(d['w_total'])})",
+        delta_line(d, prev),
         f"종목 {d.get('n_tickers', '?')}개 · 행 {d.get('n_main', 0)}+{d.get('n_w', 0)}",
         "",
         f"가중 1개월 {w1m:+.1f}% · 3개월 {w3m:+.1f}%",
@@ -167,7 +212,8 @@ def main():
         d["w1m"] = w1 / tw
         d["w3m"] = w3 / tw
 
-    msg = build_message(d)
+    prev = load_last_sent()
+    msg = build_message(d, prev)
     print(msg)
     print("---")
 
@@ -184,7 +230,8 @@ def main():
     result = send_telegram(token, chat_id, msg)
     if not result.get("ok"):
         raise SystemExit(f"전송 실패: {result}")
-    print("텔레그램 전송 완료.")
+    save_last_sent(d)
+    print(f"텔레그램 전송 완료. (비교 기준 저장: {LAST_SENT.name})")
 
 
 if __name__ == "__main__":
