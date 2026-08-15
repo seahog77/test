@@ -6,8 +6,8 @@
   기술 매수신호 + 펀더멘털(EPS/PER/PBR/매출·이익성장) 종합점수
 
 사용:
-  python send_buy_signals_telegram.py --top 20
-  python send_buy_signals_telegram.py --top 20 --tech-only
+  python send_buy_signals_telegram.py --top 10
+  python send_buy_signals_telegram.py --top 10 --tech-only
 """
 from __future__ import annotations
 
