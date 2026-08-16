@@ -51,6 +51,61 @@ def man(n: float) -> str:
     return f"{v:+,}만"
 
 
+def short_name(name: str, n: int = 16) -> str:
+    s = (name or "").strip()
+    return s if len(s) <= n else s[: n - 1] + "…"
+
+
+def build_ticker_map(d: dict) -> dict[str, dict]:
+    """종목코드별 평가액·수량·테마 집계."""
+    out: dict[str, dict] = {}
+    rows = d.get("holdings") or []
+    if not rows:
+        for t in d.get("top_tickers") or []:
+            tic = str(t.get("tic") or "")
+            if not tic:
+                continue
+            out[tic] = {
+                "name": t.get("name") or tic,
+                "val": float(t.get("val") or 0),
+                "qty": 0.0,
+                "theme": t.get("theme") or "",
+            }
+        return out
+
+    for h in rows:
+        tic = str(h.get("tic") or "")
+        if not tic:
+            continue
+        cur = out.get(tic)
+        if cur is None:
+            out[tic] = {
+                "name": h.get("name") or tic,
+                "val": float(h.get("val") or 0),
+                "qty": float(h.get("qty") or 0),
+                "theme": h.get("theme") or "",
+            }
+        else:
+            cur["val"] += float(h.get("val") or 0)
+            cur["qty"] += float(h.get("qty") or 0)
+            if h.get("name"):
+                cur["name"] = h["name"]
+            if h.get("theme"):
+                cur["theme"] = h["theme"]
+    return out
+
+
+def build_theme_map(d: dict) -> dict[str, float]:
+    themes = d.get("theme") or []
+    if themes:
+        return {str(t["name"]): float(t["val"]) for t in themes if t.get("name")}
+    m: dict[str, float] = {}
+    for info in build_ticker_map(d).values():
+        th = info.get("theme") or "기타"
+        m[th] = m.get(th, 0.0) + float(info.get("val") or 0)
+    return m
+
+
 def load_last_sent() -> dict | None:
     if not LAST_SENT.exists():
         return None
@@ -63,12 +118,23 @@ def load_last_sent() -> dict | None:
 def save_last_sent(d: dict) -> None:
     from datetime import datetime
 
+    tickers = build_ticker_map(d)
     payload = {
         "sent_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
         "asof": d.get("asof"),
         "total": float(d["total"]),
         "main_total": float(d["main_total"]),
         "w_total": float(d["w_total"]),
+        "tickers": {
+            k: {
+                "name": v["name"],
+                "val": round(float(v["val"]), 2),
+                "qty": round(float(v["qty"]), 6),
+                "theme": v.get("theme") or "",
+            }
+            for k, v in tickers.items()
+        },
+        "themes": {k: round(float(v), 2) for k, v in build_theme_map(d).items()},
     }
     LAST_SENT.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
@@ -86,6 +152,120 @@ def delta_line(d: dict, prev: dict | None) -> str:
         f"이전 전송 대비 {man(d_total)} "
         f"(MAIN {man(d_main)} · W {man(d_w)}) · 기준 {when}"
     )
+
+
+def _split_price_flow(prev_val: float, prev_qty: float, cur_val: float, cur_qty: float):
+    """평가액 증감을 시세 효과 / 수량변화(매매·입출)로 대략 분해."""
+    delta = cur_val - prev_val
+    if prev_qty > 0 and cur_qty > 0:
+        prev_px = prev_val / prev_qty
+        cur_px = cur_val / cur_qty
+        price_effect = prev_qty * (cur_px - prev_px)
+        flow_effect = delta - price_effect
+        return price_effect, flow_effect
+    if prev_qty <= 0 and cur_qty > 0:
+        return 0.0, delta  # 신규
+    if prev_qty > 0 and cur_qty <= 0:
+        return 0.0, delta  # 청산
+    return delta, 0.0
+
+
+def analyze_change_drivers(d: dict, prev: dict | None, top_n: int = 3) -> list[str]:
+    """이전 전송 대비 증감 원인 설명 줄 목록."""
+    if not prev or not prev.get("tickers"):
+        return ["(이전 종목 스냅샷 없음 · 다음 전송부터 원인 분석)"]
+
+    cur_map = build_ticker_map(d)
+    prev_map = prev.get("tickers") or {}
+    all_tics = set(cur_map) | set(prev_map)
+
+    rows = []
+    price_sum = flow_sum = 0.0
+    for tic in all_tics:
+        cur = cur_map.get(tic) or {"name": tic, "val": 0.0, "qty": 0.0, "theme": ""}
+        prv = prev_map.get(tic) or {"name": cur["name"], "val": 0.0, "qty": 0.0, "theme": ""}
+        name = cur.get("name") or prv.get("name") or tic
+        theme = cur.get("theme") or prv.get("theme") or ""
+        cur_val = float(cur.get("val") or 0)
+        prev_val = float(prv.get("val") or 0)
+        cur_qty = float(cur.get("qty") or 0)
+        prev_qty = float(prv.get("qty") or 0)
+        delta = cur_val - prev_val
+        if abs(delta) < 5000:  # 0.5만원 미만 무시
+            continue
+        pe, fe = _split_price_flow(prev_val, prev_qty, cur_val, cur_qty)
+        price_sum += pe
+        flow_sum += fe
+        is_cash = "현금" in (theme or "") or tic in {"현금", "CMA", "예금"}
+        if is_cash:
+            tag = "현금 변동"
+            # 현금은 시세보다 입출금으로 보는 편이 맞음
+            price_sum -= pe
+            flow_sum -= fe
+            flow_sum += delta
+        elif prev_val <= 0 and cur_val > 0:
+            tag = "신규"
+        elif cur_val <= 0 and prev_val > 0:
+            tag = "제외/매도"
+        elif abs(fe) > abs(pe) * 1.2 and abs(fe) >= 1e4:
+            tag = "매매·입출 추정"
+        else:
+            tag = "시세"
+        rows.append(
+            {
+                "tic": tic,
+                "name": name,
+                "theme": theme,
+                "delta": delta,
+                "tag": tag,
+                "pe": pe,
+                "fe": fe,
+            }
+        )
+
+    if not rows:
+        return ["유의미한 종목 변동 없음 (만원 단위 미만)"]
+
+    rows.sort(key=lambda x: x["delta"], reverse=True)
+    gainers = [r for r in rows if r["delta"] > 0][:top_n]
+    losers = [r for r in rows if r["delta"] < 0][-top_n:]
+    losers = sorted(losers, key=lambda x: x["delta"])  # most negative first
+
+    # theme deltas
+    cur_th = build_theme_map(d)
+    prev_th = prev.get("themes") or {}
+    theme_deltas = []
+    for name in set(cur_th) | set(prev_th):
+        dd = float(cur_th.get(name, 0)) - float(prev_th.get(name, 0))
+        if abs(dd) >= 1e4:
+            theme_deltas.append((name, dd))
+    theme_deltas.sort(key=lambda z: abs(z[1]), reverse=True)
+
+    lines: list[str] = []
+    for r in gainers:
+        lines.append(f"↑ {short_name(r['name'])} {man(r['delta'])} ({r['tag']})")
+    for r in losers:
+        lines.append(f"↓ {short_name(r['name'])} {man(r['delta'])} ({r['tag']})")
+
+    # summary narrative
+    total_delta = float(d["total"]) - float(prev["total"])
+    direction = "증가" if total_delta > 0 else "감소" if total_delta < 0 else "보합"
+    parts = []
+    if theme_deltas:
+        top_th_name, top_th_d = theme_deltas[0]
+        parts.append(f"{top_th_name} {man(top_th_d)}")
+    if abs(price_sum) >= 1e4 or abs(flow_sum) >= 1e4:
+        parts.append(f"시세 {man(price_sum)} · 매매/입출 {man(flow_sum)}")
+    if gainers and abs(gainers[0]["delta"]) >= abs(total_delta) * 0.35 and total_delta != 0:
+        parts.append(f"주도 {short_name(gainers[0]['name'], 12)}")
+    elif losers and total_delta < 0 and abs(losers[0]["delta"]) >= abs(total_delta) * 0.35:
+        parts.append(f"하락 주도 {short_name(losers[0]['name'], 12)}")
+
+    summary = f"요약: 자산 {direction}"
+    if parts:
+        summary += " — " + ", ".join(parts)
+    lines.append(summary)
+    return lines
 
 
 def build_message(d: dict, prev: dict | None = None) -> str:
@@ -119,12 +299,17 @@ def build_message(d: dict, prev: dict | None = None) -> str:
     cash = float(d.get("cash_share") or 0) * 100
     bond = float(d.get("bond_share") or 0) * 100
 
+    driver_lines = analyze_change_drivers(d, prev)
+
     lines = [
         f"📊 통합 포트폴리오 요약 ({d.get('asof', '')})",
         "",
         f"합산 {won(d['total'])} (MAIN {won(d['main_total'])} + W {won(d['w_total'])})",
         delta_line(d, prev),
         f"종목 {d.get('n_tickers', '?')}개 · 행 {d.get('n_main', 0)}+{d.get('n_w', 0)}",
+        "",
+        "【증감 원인】",
+        *driver_lines,
         "",
         f"가중 1개월 {w1m:+.1f}% · 3개월 {w3m:+.1f}%",
         f"커버드콜 {cc:.0f}% · 1위종목 {top1:.0f}%",
