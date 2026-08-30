@@ -3,7 +3,7 @@
 You are a Cloud Agent. Run the daily portfolio pipeline and persist Excel updates.
 
 ## Workbooks
-- MAIN: `investment_0815.xlsx`
+- MAIN: `investment_0831.xlsx`
 - W: `investment_0723_W.xlsx` (unchanged name)
 
 ## Steps
