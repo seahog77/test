@@ -8,6 +8,8 @@
 사용:
   python send_buy_signals_telegram.py --top 10
   python send_buy_signals_telegram.py --top 10 --tech-only
+
+시장별 추천은 최대 10개. 자동화 등이 --top 20을 넘겨도 10개로 자른다.
 """
 from __future__ import annotations
 
@@ -34,6 +36,17 @@ from top7_strategy import get_kospi_top30
 warnings.filterwarnings("ignore")
 
 BASE = Path(__file__).resolve().parent
+
+# 텔레그램 시장별 추천 상한. 일일 자동화 프롬프트가 --top 20이어도 여기가 우선.
+BUY_SIGNAL_TOP_N = 10
+
+
+def resolve_top_n(requested: int) -> int:
+    n = max(1, int(requested))
+    if n > BUY_SIGNAL_TOP_N:
+        print(f"매수신호 TOP{n} 요청 → TOP{BUY_SIGNAL_TOP_N}으로 제한", flush=True)
+        return BUY_SIGNAL_TOP_N
+    return n
 
 
 def download_hist(symbols: list[str], start: str, end: str) -> dict[str, pd.DataFrame]:
@@ -190,7 +203,12 @@ def main():
     import argparse
 
     ap = argparse.ArgumentParser()
-    ap.add_argument("--top", type=int, default=10, help="시장별 TOP N (기본 10)")
+    ap.add_argument(
+        "--top",
+        type=int,
+        default=BUY_SIGNAL_TOP_N,
+        help=f"시장별 TOP N (기본·최대 {BUY_SIGNAL_TOP_N})",
+    )
     ap.add_argument(
         "--combined",
         action="store_true",
@@ -248,7 +266,7 @@ def main():
         raise SystemExit("신호 계산 결과 없음")
 
     asof = datetime.now().strftime("%Y-%m-%d")
-    n = max(1, args.top)
+    n = resolve_top_n(args.top)
 
     if args.combined:
         top = pick_top(df, n, with_fund)
@@ -276,7 +294,7 @@ def main():
                 print(f"텔레그램 전송 완료 [{market}].", flush=True)
         payload = {"US": us_top, "KR": kr_top}
 
-    out = BASE / ("_buy_signals_top20.json" if n >= 20 else "_buy_signals_top10.json")
+    out = BASE / "_buy_signals_top10.json"
     out.write_text(json.dumps(payload, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
     print("완료.", flush=True)
 
