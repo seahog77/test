@@ -5,8 +5,8 @@
 
 1. `investment_0815.xlsx`, `investment_0723_W.xlsx` 시세·금액순·배당 탭 갱신
 2. 통합 포트폴리오 요약 텔레그램 전송
-3. 미국/한국 강한 매수신호 TOP10 텔레그램 전송  
-   (기술신호 + EPS/PER/PBR/매출·이익성장 종합순위)
+3. 미국/한국 강한 매수신호 **시장별 TOP10** 텔레그램 전송  
+   (기술신호 + EPS/PER/PBR/매출·이익성장 종합순위. 20개가 아님)
 4. 주요 경제뉴스 텔레그램 전송
 5. 변경된 엑셀·분석 JSON 을 커밋하고 push (PR 불필요하면 만들지 말 것)
 
@@ -15,6 +15,7 @@
 cd My_investment
 python -m pip install -q openpyxl pandas yfinance requests python-dotenv finance-datareader
 python -X utf8 daily_portfolio_report.py --top 10
+# --top 20을 넘겨도 스크립트가 시장별 10개로 자른다.
 ```
 
 ## 시크릿 (대시보드 Secrets / .env)

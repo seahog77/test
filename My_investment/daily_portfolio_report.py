@@ -11,6 +11,8 @@
   python daily_portfolio_report.py
   python daily_portfolio_report.py --skip-update   # 시세갱신 생략
   python daily_portfolio_report.py --top 10
+
+시장별 추천은 최대 10개. --top 20이 와도 10개로 자른다.
 """
 from __future__ import annotations
 
@@ -23,6 +25,17 @@ from pathlib import Path
 
 from app_paths import app_dir, safe_reconfigure_stdio
 from send_portfolio_telegram import load_dotenv, send_telegram
+
+# send_buy_signals_telegram.BUY_SIGNAL_TOP_N 과 동일. 자동화 --top 20도 여기가 우선.
+BUY_SIGNAL_TOP_N = 10
+
+
+def resolve_top_n(requested: int) -> int:
+    n = max(1, int(requested))
+    if n > BUY_SIGNAL_TOP_N:
+        print(f"매수신호 TOP{n} 요청 → TOP{BUY_SIGNAL_TOP_N}으로 제한", flush=True)
+        return BUY_SIGNAL_TOP_N
+    return n
 
 safe_reconfigure_stdio()
 BASE = app_dir()
@@ -70,9 +83,15 @@ def main() -> int:
     ap.add_argument("--skip-portfolio", action="store_true", help="포트폴리오 요약 생략")
     ap.add_argument("--skip-signals", action="store_true", help="매수신호 생략")
     ap.add_argument("--skip-news", action="store_true", help="뉴스 생략")
-    ap.add_argument("--top", type=int, default=10, help="시장별 매수신호 TOP N")
+    ap.add_argument(
+        "--top",
+        type=int,
+        default=BUY_SIGNAL_TOP_N,
+        help=f"시장별 매수신호 TOP N (기본·최대 {BUY_SIGNAL_TOP_N})",
+    )
     ap.add_argument("--year", type=int, default=datetime.now().year, help="배당 연도")
     args = ap.parse_args()
+    signal_top = resolve_top_n(args.top)
 
     load_dotenv(BASE / ".env")
     import os
@@ -98,7 +117,7 @@ def main() -> int:
                     "utf8",
                     str(BASE / "send_buy_signals_telegram.py"),
                     "--top",
-                    str(args.top),
+                    str(signal_top),
                 ],
             )
         if not args.skip_news:
