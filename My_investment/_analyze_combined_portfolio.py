@@ -207,7 +207,7 @@ def to_yf(tic, name):
 
 
 def main():
-    h1, _ = load_holdings(BASE / "investment_0831.xlsx", "MAIN")
+    h1, _ = load_holdings(BASE / "investment_0906.xlsx", "MAIN")
     h2, _ = load_holdings(BASE / "investment_0723_W.xlsx", "W")
     allh = h1 + h2
     for r in allh:
