@@ -352,6 +352,237 @@ def plot_capacity_vs_sinr(
     return out_path
 
 
+# Cioffi EE392AA Lecture 9, Section 2.8.2.1 "Example" (L9:28).
+# 스칼라 가우시안 BC 용량 영역의 수치 예제.
+CIOFFI_H1 = 0.8
+CIOFFI_H2 = 0.5
+CIOFFI_NOISE = 1e-4
+CIOFFI_ENERGY = 1.0
+CIOFFI_ALPHAS = (1.0, 0.75, 0.5, 0.25, 0.10, 0.05, 0.01, 0.001, 0.0)
+
+
+def cioffi_scalar_gains() -> tuple[float, float]:
+    """잡음 백색화 이득 g_u = |h_u|² / σ_u²."""
+    return CIOFFI_H1**2 / CIOFFI_NOISE, CIOFFI_H2**2 / CIOFFI_NOISE
+
+
+def cioffi_bc_rates(alpha: float, energy: float | None = None) -> tuple[float, float]:
+    """강한 사용자(1)를 나중에 복호하는 DPC/중첩 전송률.
+
+    b1 = (1/2) log2(1 + α E g1)
+    b2 = (1/2) log2(1 + (1-α) E g2 / (1 + α E g2))
+    g1 > g2 이면 이 순서가 용량 영역의 경계이다.
+    """
+    if energy is None:
+        energy = CIOFFI_ENERGY
+    g1, g2 = cioffi_scalar_gains()
+    user1_energy = alpha * energy
+    user2_energy = (1.0 - alpha) * energy
+    b1 = float(dpc_rate_from_sinr(user1_energy * g1))
+    b2 = float(dpc_rate_from_sinr(user2_energy * g2 / (1.0 + user1_energy * g2)))
+    return b1, b2
+
+
+def cioffi_rate_table() -> list[tuple[float, float, float, float]]:
+    rows = []
+    for alpha in CIOFFI_ALPHAS:
+        b1, b2 = cioffi_bc_rates(alpha)
+        rows.append((alpha, b1, b2, b1 + b2))
+    return rows
+
+
+def plot_paper_capacity_region(out_path: Path) -> Path:
+    """Cioffi Sec. 2.8.2.1 예제의 BC 용량 영역.
+
+    가로축 b1, 세로축 b2. α를 0에서 1까지 바꾸면 경계가 그려지고,
+    b1이 큰 쪽에서 기울기는 -1이다.
+    """
+    _korean_font()
+    g1, g2 = cioffi_scalar_gains()
+    rows = cioffi_rate_table()
+    samples = np.unique(
+        np.concatenate(
+            [
+                np.array([0.0, 1.0]),
+                np.logspace(-5, -1, 200),
+                np.linspace(0.1, 1.0, 200),
+            ]
+        )
+    )
+    boundary = np.array([cioffi_bc_rates(float(alpha)) for alpha in samples])
+
+    # 강의 그림의 녹색 점. α=.01 의 b1 과 α=.05 의 b2 가 만나는 상자 모서리.
+    b_point = np.array([3.01, 2.15])
+    gap = 0.581
+    c_point = b_point + gap
+
+    fig = plt.figure(figsize=(12.8, 6.5), constrained_layout=True)
+    grid = fig.add_gridspec(1, 2, width_ratios=[0.78, 1.22])
+    left = fig.add_subplot(grid[0])
+    right = fig.add_subplot(grid[1])
+    left.axis("off")
+
+    left.set_xlim(0, 1)
+    left.set_ylim(0, 1)
+    left.text(
+        0.0,
+        0.98,
+        "스칼라 가우시안 BC 용량 영역",
+        fontsize=13,
+        va="top",
+    )
+    left.text(
+        0.0,
+        0.91,
+        r"$h_1=0.8,\; h_2=0.5,\; \sigma_1^2=\sigma_2^2=0.0001,\; \mathcal{E}_x=1$",
+        fontsize=9,
+        va="top",
+    )
+    left.text(
+        0.0,
+        0.845,
+        rf"$g_1=|h_1|^2/\sigma_1^2={g1:.0f},\; g_2={g2:.0f}$",
+        fontsize=9,
+        va="top",
+    )
+    left.text(
+        0.0,
+        0.78,
+        r"$\bar b_1=\frac{1}{2}\log_2(1+\alpha\mathcal{E}_x g_1)$" + "\n"
+        r"$\bar b_2=\frac{1}{2}\log_2\!\left(1+\frac{(1-\alpha)\mathcal{E}_x g_2}{1+\alpha\mathcal{E}_x g_2}\right)$",
+        fontsize=10,
+        va="top",
+    )
+    cell = [[f"{alpha:g}", f"{b1:.2f}", f"{b2:.2f}", f"{total:.2f}"] for alpha, b1, b2, total in rows]
+    table = left.table(
+        cellText=cell,
+        colLabels=[r"$\alpha$", r"$\bar b_1$", r"$\bar b_2$", r"$\bar b_1+\bar b_2$"],
+        colLoc="center",
+        cellLoc="center",
+        bbox=[0.0, 0.16, 1.0, 0.52],
+    )
+    table.auto_set_font_size(False)
+    table.set_fontsize(8.5)
+    for (row_index, _col), cell_obj in table.get_celld().items():
+        cell_obj.set_edgecolor("#bbbbbb")
+        cell_obj.set_linewidth(0.4)
+        cell_obj.set_facecolor("#f4f1ea" if row_index == 0 else "white")
+    coop = 0.5 * np.log2((1.0 + g1) * (1.0 + g2) - (np.sqrt(g1 * g2)) ** 2)
+    left.text(
+        0.0,
+        0.12,
+        rf"수신기가 협력하면  $I(x;\mathbf{{y}})=\frac{{1}}{{2}}\log_2\det(\cdot)={coop:.2f}$" + "\n"
+        r"BC 합용량은 그 아래인  $\max(b_1+b_2)=6.32$",
+        fontsize=8.5,
+        va="top",
+    )
+
+    axis = right
+    polygon = np.vstack([boundary, [[0.0, 0.0]]])
+    axis.fill(polygon[:, 0], polygon[:, 1], color="#f3e6c8", zorder=0)
+    for alpha, face in ((0.001, "#fffdf8"), (0.01, "#fffdf8"), (0.05, "#fffdf8")):
+        b1, b2 = cioffi_bc_rates(alpha)
+        axis.add_patch(
+            plt.Rectangle(
+                (0.0, 0.0),
+                b1,
+                b2,
+                facecolor=face,
+                edgecolor="#222222",
+                linewidth=0.8,
+                zorder=2,
+            )
+        )
+    axis.plot(boundary[:, 0], boundary[:, 1], color="black", lw=1.6, zorder=3)
+    axis.plot(
+        [0.86, c_point[0]],
+        [0.0, c_point[1]],
+        color="#1b8a3a",
+        lw=1.3,
+        ls=(0, (4, 2.5)),
+        zorder=4,
+    )
+    axis.scatter([b_point[0]], [b_point[1]], s=28, color="#1b8a3a", zorder=5)
+    axis.scatter([c_point[0]], [c_point[1]], s=16, color="#1b8a3a", zorder=5)
+    b1_half, b2_half = cioffi_bc_rates(0.5)
+    axis.scatter([b1_half], [b2_half], s=28, color="#3b6ea5", zorder=5)
+
+    axis.annotate(
+        r"$0\leq\alpha\leq .001$",
+        xy=(0.55, 5.45),
+        xytext=(1.7, 6.15),
+        fontsize=8,
+        arrowprops={"arrowstyle": "->", "color": "black", "lw": 0.7},
+    )
+    axis.text(0.15, 4.00, r"$\alpha=.001$", fontsize=8)
+    axis.text(1.55, 2.72, r"$\alpha=.01$", fontsize=8, ha="center")
+    axis.text(2.35, 3.02, "6.30", fontsize=8, ha="center")
+    axis.text(3.55, 1.05, r"$\alpha=.05$", fontsize=8, ha="center")
+    axis.text(3.55, 1.70, "6.31", fontsize=8, ha="center")
+    axis.text(0.92, -0.38, "0.86", color="#1b8a3a", fontsize=8, ha="center")
+    axis.text(
+        3.15,
+        2.35,
+        r"$b$",
+        color="#1b8a3a",
+        fontsize=9,
+        ha="left",
+        va="bottom",
+    )
+    axis.text(
+        4.05,
+        3.55,
+        r"$\gamma_b=.581$" + "\n"
+        r"$c_b=(3.59,\,2.73)$" + "\n"
+        r"$=(3.01+.581,\,2.15+.581)$" + "\n"
+        r"$\Gamma_m=3.6\,\mathrm{dB}$",
+        color="#1b8a3a",
+        fontsize=8,
+        va="bottom",
+    )
+    axis.annotate(
+        "",
+        xy=(c_point[0], c_point[1]),
+        xytext=(4.15, 3.55),
+        arrowprops={"arrowstyle": "->", "color": "#1b8a3a", "lw": 0.7},
+    )
+    axis.text(
+        4.55,
+        0.85,
+        rf"$b_1={b1_half:.3f},\ b_2={b2_half:.3f}$" + "\n"
+        r"$\mathcal{E}_1=\mathcal{E}_2=0.5$",
+        color="#3b6ea5",
+        fontsize=8,
+        va="bottom",
+    )
+    axis.text(5.55, 0.28, "Slope = −1", fontsize=8)
+    axis.text(6.05, -0.38, r"$\alpha=1$", color="#c0392b", fontsize=9, ha="center")
+    axis.text(-0.15, 5.85, r"$\alpha=0$", color="#c0392b", fontsize=9, ha="right")
+
+    axis.set_xlim(-0.35, 7.55)
+    axis.set_ylim(-0.55, 6.7)
+    axis.set_aspect("equal", adjustable="box")
+    axis.set_xticks([0, 1.44, 3.01, 4.16, 6.32])
+    axis.set_xticklabels(["0", "1.44", "3.01", "4.16", "6.32"])
+    axis.set_yticks([0, 2.15, 3.29, 4.74, 5.64])
+    axis.set_yticklabels(["0", "2.15", "3.29", "4.74", "5.64"])
+    axis.set_xlabel(r"$b_1$  [bits]")
+    axis.set_ylabel(r"$b_2$  [bits]")
+    axis.set_title(r"$\mathcal{C}(b)$,   Cioffi Sec. 2.8.2.1")
+    axis.spines["top"].set_visible(False)
+    axis.spines["right"].set_visible(False)
+
+    fig.suptitle(
+        "Gaussian BC capacity region    ·    Cioffi, Sec. 2.8.2.1 Example",
+        fontsize=12,
+    )
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path, dpi=160)
+    plt.close(fig)
+    return out_path
+
+
 def _print_scalar_table(alpha: float, sigma_ratio: float) -> None:
     print()
     print(
@@ -406,6 +637,11 @@ def main() -> None:
         type=Path,
         default=Path(__file__).resolve().parent / "dpc_capacity_vs_sinr.png",
     )
+    parser.add_argument(
+        "--region-out",
+        type=Path,
+        default=Path(__file__).resolve().parent / "cioffi_bc_capacity_region.png",
+    )
     args = parser.parse_args()
 
     nats = verify_paper_appendix()
@@ -417,6 +653,14 @@ def main() -> None:
     )
     _print_scalar_table(args.alpha, args.sigma_ratio)
     _print_vector_table()
+    print()
+    print("Cioffi Sec. 2.8.2.1 용량 영역  (h1=0.8, h2=0.5, σ²=0.0001)")
+    header = f"{'alpha':>8} {'b1':>8} {'b2':>8} {'b1+b2':>8}"
+    print(header)
+    print("-" * len(header))
+    for alpha, b1, b2, total in cioffi_rate_table():
+        print(f"{alpha:8.3f} {b1:8.2f} {b2:8.2f} {total:8.2f}")
+    region = plot_paper_capacity_region(args.region_out)
     out = plot_capacity_vs_sinr(
         args.out,
         alpha=args.alpha,
@@ -425,7 +669,8 @@ def main() -> None:
         sinr_max_db=args.sinr_max,
     )
     print()
-    print(f"그래프 저장: {out}")
+    print(f"용량 영역 그림: {region}")
+    print(f"SINR 그림: {out}")
 
 
 if __name__ == "__main__":
