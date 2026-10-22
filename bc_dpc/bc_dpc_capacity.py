@@ -644,6 +644,401 @@ def _dpc_uniform(channel: np.ndarray, power: float) -> float:
     return float(logdet / np.log(2.0))
 
 
+def _complex_mac_rate_grad(
+    channel: np.ndarray, q: np.ndarray, noise: float
+) -> tuple[float, np.ndarray]:
+    """복소 쌍대 MAC 합전송률(bits)과 전력 q에 대한 기울기.
+
+    channel의 각 행은 g_k^H 이다. 공분산은 noise I + Σ q_k g_k g_k^H.
+    """
+    n_users, n_tx = channel.shape
+    users = channel.conj()
+    cov = noise * np.eye(n_tx, dtype=np.complex128)
+    for index in range(n_users):
+        if q[index] > 0.0:
+            user = users[index]
+            cov += q[index] * np.outer(user, user.conj())
+    _sign, logdet = np.linalg.slogdet(cov)
+    rate = float((logdet - n_tx * np.log(noise)) / np.log(2.0))
+    solved = np.linalg.solve(cov, users.T)
+    quad = np.array(
+        [float(np.vdot(users[index], solved[:, index]).real) for index in range(n_users)]
+    )
+    return rate, quad / np.log(2.0)
+
+
+def _mac_rate_and_q(
+    channel: np.ndarray, power: float, noise: float = 1.0
+) -> tuple[float, np.ndarray]:
+    """복소 쌍대 MAC의 최적 합전송률(bits)과 사용자 전력 q."""
+    channel = np.atleast_2d(np.asarray(channel, dtype=np.complex128))
+    n_users = channel.shape[0]
+    if power <= 0.0 or n_users == 0:
+        return 0.0, np.zeros(n_users)
+
+    def objective(q: np.ndarray) -> tuple[float, np.ndarray]:
+        rate, grad = _complex_mac_rate_grad(channel, q, noise)
+        return -rate, -grad
+
+    bounds = [(0.0, power)] * n_users
+    constraint = {"type": "ineq", "fun": lambda q: power - float(np.sum(q))}
+    starts = [np.full(n_users, power / n_users)]
+    gains = np.sum(np.abs(channel) ** 2, axis=1)
+    strongest = np.zeros(n_users)
+    strongest[int(np.argmax(gains))] = power
+    starts.append(strongest)
+
+    best = -np.inf
+    best_q = starts[0]
+    for start in starts:
+        result = minimize(
+            objective,
+            start,
+            jac=True,
+            bounds=bounds,
+            constraints=constraint,
+            method="SLSQP",
+            tol=1e-10,
+            options={"maxiter": 200, "ftol": 1e-12, "disp": False},
+        )
+        q_hat = np.clip(result.x, 0.0, None)
+        total = float(np.sum(q_hat))
+        if total > power and total > 0.0:
+            q_hat *= power / total
+        rate, _grad = _complex_mac_rate_grad(channel, q_hat, noise)
+        if rate > best:
+            best = rate
+            best_q = q_hat
+    return float(best), best_q
+
+
+def complex_dpc_sum_capacity(
+    channel: np.ndarray, power: float, noise: float = 1.0
+) -> float:
+    """복소 MIMO BC의 DPC 합용량(bits). 쌍대 MAC 전력을 최적화한다."""
+    rate, _q = _mac_rate_and_q(channel, power, noise)
+    return rate
+
+
+def _linear_sum_rate(
+    channel: np.ndarray, beams: np.ndarray, noise: float = 1.0
+) -> float:
+    """선형 빔포밍 합전송률. beams의 열이 사용자별 빔 v_k."""
+    gain = channel @ beams
+    received = np.sum(np.abs(gain) ** 2, axis=1) + noise
+    signal = np.abs(np.diag(gain)) ** 2
+    interference = np.maximum(received - signal, 1e-15)
+    return float(np.sum(np.log2(1.0 + signal / interference)))
+
+
+def _matched_beams(channel: np.ndarray, power: float) -> np.ndarray:
+    beams = np.array(channel.conj().T, dtype=np.complex128, copy=True)
+    norms = np.linalg.norm(beams, axis=0)
+    beams /= np.maximum(norms, 1e-12)
+    beams *= np.sqrt(power / channel.shape[0])
+    return beams
+
+
+def _zf_equal_beams(channel: np.ndarray, power: float) -> np.ndarray:
+    gram = channel @ channel.conj().T
+    beams = channel.conj().T @ np.linalg.inv(gram)
+    norms = np.linalg.norm(beams, axis=0)
+    beams /= np.maximum(norms, 1e-12)
+    beams *= np.sqrt(power / channel.shape[0])
+    return beams
+
+
+def _beams_under_power(
+    gram: np.ndarray, rhs: np.ndarray, power: float
+) -> np.ndarray:
+    """(gram + μ I)^{-1} rhs 의 총전력이 power 가 되도록 μ를 고른다."""
+    scale = max(float(np.linalg.norm(gram, ord=np.inf)), 1.0)
+    gram = gram / scale
+    rhs = rhs / scale
+    eye = np.eye(gram.shape[0], dtype=np.complex128)
+
+    def solve(level: float) -> tuple[np.ndarray, float]:
+        beams = np.linalg.solve(gram + level * eye, rhs)
+        used = float(np.vdot(beams, beams).real)
+        return beams, used
+
+    try:
+        beams, used = solve(0.0)
+    except np.linalg.LinAlgError:
+        beams, used = None, np.inf
+    if beams is not None and used <= power * (1.0 + 1e-9) and np.all(np.isfinite(beams)):
+        return beams
+    low = 0.0
+    high = 1.0
+    _beams, used_high = solve(high)
+    while used_high > power and high < 1e12:
+        high *= 2.0
+        _beams, used_high = solve(high)
+    for _ in range(60):
+        mid = 0.5 * (low + high)
+        beams, used = solve(mid)
+        if used > power:
+            low = mid
+        else:
+            high = mid
+    beams, _used = solve(high)
+    return beams
+
+
+def _wmmse_from(
+    channel: np.ndarray,
+    power: float,
+    beams: np.ndarray,
+    noise: float = 1.0,
+    n_iter: int = 40,
+    tol: float = 1e-4,
+) -> float:
+    """한 초기 빔에서 WMMSE 반복. 합전송률이 오르면 그 빔을 유지한다.
+
+    Christensen, Agarwal, Carvalho, Cioffi, IEEE TWC 2008.
+    수신기 u_k 와 가중치 w_k = 1/e_k 를 갱신한 뒤, 합전력 제약 아래
+    가중 MSE를 최소화하는 빔으로 보낸다.
+    """
+    n_users, _n_tx = channel.shape
+    users = channel.conj()
+    best = _linear_sum_rate(channel, beams, noise)
+    for _ in range(n_iter):
+        gain = channel @ beams
+        received = np.sum(np.abs(gain) ** 2, axis=1) + noise
+        desired = np.diag(gain)
+        receiver = desired / received
+        error = np.maximum(1.0 - np.real(np.conj(receiver) * desired), 1e-12)
+        weight = 1.0 / error
+        gram = np.zeros((channel.shape[1], channel.shape[1]), dtype=np.complex128)
+        rhs = np.zeros((channel.shape[1], n_users), dtype=np.complex128)
+        for index in range(n_users):
+            user = users[index]
+            gram += (weight[index] * (np.abs(receiver[index]) ** 2)) * np.outer(
+                user, user.conj()
+            )
+            rhs[:, index] = weight[index] * np.conj(receiver[index]) * user
+        gram = 0.5 * (gram + gram.conj().T)
+        beams = _beams_under_power(gram, rhs, power)
+        rate = _linear_sum_rate(channel, beams, noise)
+        if rate < best - 1e-4:
+            break
+        if rate <= best + tol:
+            best = max(best, rate)
+            break
+        best = rate
+    return best
+
+
+def wmmse_sum_rate(
+    channel: np.ndarray,
+    power: float,
+    noise: float = 1.0,
+    n_iter: int = 40,
+    tol: float = 1e-4,
+) -> float:
+    """정합필터와 ZF 두 초기값 중 더 높은 WMMSE 합전송률."""
+    if power <= 0.0:
+        return 0.0
+    channel = np.atleast_2d(np.asarray(channel, dtype=np.complex128))
+    matched = _wmmse_from(
+        channel, power, _matched_beams(channel, power), noise, n_iter=n_iter, tol=tol
+    )
+    zero_forced = _wmmse_from(
+        channel, power, _zf_equal_beams(channel, power), noise, n_iter=n_iter, tol=tol
+    )
+    return max(matched, zero_forced)
+
+
+def _project_per_antenna(beams: np.ndarray, rho: float) -> np.ndarray:
+    """각 안테나 전력이 rho 이하가 되도록 행을 줄인다."""
+    used = np.sum(np.abs(beams) ** 2, axis=1)
+    scale = np.ones(beams.shape[0])
+    hot = used > rho
+    scale[hot] = np.sqrt(rho / used[hot])
+    return beams * scale[:, None]
+
+
+def _beams_under_per_antenna(
+    gram: np.ndarray, rhs: np.ndarray, rho: float, n_outer: int = 30
+) -> np.ndarray:
+    """(gram + diag(λ))^{-1} rhs 가 안테나 전력 ρ를 지키게 λ를 고른다."""
+    n_tx = gram.shape[0]
+    scale = max(float(np.linalg.norm(gram, ord=np.inf)), 1.0)
+    gram = gram / scale
+    rhs = rhs / scale
+    level = np.full(n_tx, 1e-3)
+    beams = np.linalg.solve(gram + np.diag(level), rhs)
+    for _ in range(n_outer):
+        loaded = gram.copy()
+        loaded[np.arange(n_tx), np.arange(n_tx)] += level
+        beams = np.linalg.solve(loaded, rhs)
+        used = np.sum(np.abs(beams) ** 2, axis=1)
+        mismatch = used / rho
+        if np.all(np.abs(np.log(np.maximum(mismatch, 1e-12))) < 0.01) or (
+            np.all(used <= rho * 1.001) and np.all((level < 1e-6) | (mismatch > 0.99))
+        ):
+            break
+        level = np.maximum(level * mismatch, 0.0)
+    used = np.sum(np.abs(beams) ** 2, axis=1)
+    return _project_per_antenna(beams, rho * 1.0000001)
+
+
+def _wmmse_per_antenna_from(
+    channel: np.ndarray,
+    power: float,
+    beams: np.ndarray,
+    noise: float = 1.0,
+    n_iter: int = 25,
+    tol: float = 1e-3,
+) -> float:
+    """안테나 전력 ≤ P/M 인 WMMSE. 합전송률이 오르면 그 빔을 유지한다."""
+    n_users, n_tx = channel.shape
+    rho = power / n_tx
+    users = channel.conj()
+    beams = _project_per_antenna(beams, rho)
+    best = _linear_sum_rate(channel, beams, noise)
+    for _ in range(n_iter):
+        gain = channel @ beams
+        received = np.sum(np.abs(gain) ** 2, axis=1) + noise
+        desired = np.diag(gain)
+        receiver = desired / received
+        error = np.maximum(1.0 - np.real(np.conj(receiver) * desired), 1e-12)
+        weight = 1.0 / error
+        gram = np.zeros((n_tx, n_tx), dtype=np.complex128)
+        rhs = np.zeros((n_tx, n_users), dtype=np.complex128)
+        for index in range(n_users):
+            user = users[index]
+            gram += (weight[index] * (np.abs(receiver[index]) ** 2)) * np.outer(
+                user, user.conj()
+            )
+            rhs[:, index] = weight[index] * np.conj(receiver[index]) * user
+        gram = 0.5 * (gram + gram.conj().T)
+        beams = _beams_under_per_antenna(gram, rhs, rho)
+        rate = _linear_sum_rate(channel, beams, noise)
+        if rate < best - 1e-4:
+            break
+        if rate <= best + tol:
+            best = max(best, rate)
+            break
+        best = rate
+    return best
+
+
+def wmmse_per_antenna_sum_rate(
+    channel: np.ndarray, power: float, noise: float = 1.0
+) -> float:
+    """안테나마다 P/M 를 넘지 않는 WMMSE 합전송률."""
+    if power <= 0.0:
+        return 0.0
+    channel = np.atleast_2d(np.asarray(channel, dtype=np.complex128))
+    matched = _wmmse_per_antenna_from(channel, power, _matched_beams(channel, power), noise)
+    zero_forced = _wmmse_per_antenna_from(
+        channel, power, _zf_equal_beams(channel, power), noise
+    )
+    return max(matched, zero_forced)
+
+
+def zf_per_antenna_sum_rate(
+    channel: np.ndarray, power: float, noise: float = 1.0
+) -> float:
+    """제로포싱 후 안테나 전력 ≤ P/M 를 만족하는 사용자 전력을 고른다.
+
+    H W = I 가 되도록 둔 뒤, 사용자 전력 p 의 SINR 은 p/σ² 이다.
+    안테나 m 의 전력은 Σ_k |W_mk|² p_k 이다.
+    """
+    channel = np.atleast_2d(np.asarray(channel, dtype=np.complex128))
+    n_users, n_tx = channel.shape
+    if power <= 0.0:
+        return 0.0
+    rho = power / n_tx
+    gram = channel @ channel.conj().T
+    precoder = channel.conj().T @ np.linalg.inv(gram)
+    weight = np.abs(precoder) ** 2
+
+    def objective(allocated: np.ndarray) -> tuple[float, np.ndarray]:
+        rate_grad = -(1.0 / np.log(2.0)) / (noise + allocated)
+        return -float(np.sum(np.log2(1.0 + allocated / noise))), rate_grad
+
+    constraints = [
+        {
+            "type": "ineq",
+            "fun": lambda allocated, row=weight[index]: rho - float(row @ allocated),
+            "jac": lambda allocated, row=weight[index]: -row,
+        }
+        for index in range(n_tx)
+    ]
+    start = np.full(n_users, 1.0)
+    peak = float(np.max(weight @ start))
+    if peak > 0.0:
+        start *= 0.99 * rho / peak
+    result = minimize(
+        objective,
+        start,
+        jac=True,
+        bounds=[(0.0, None)] * n_users,
+        constraints=constraints,
+        method="SLSQP",
+        tol=1e-12,
+        options={"maxiter": 200, "ftol": 1e-14, "disp": False},
+    )
+    allocated = np.clip(result.x, 0.0, None)
+    peak = float(np.max(weight @ allocated))
+    if peak > rho:
+        allocated *= rho / peak
+    return float(np.sum(np.log2(1.0 + allocated / noise)))
+
+
+def complex_dpc_per_antenna(
+    channel: np.ndarray, power: float, noise: float = 1.0
+) -> float:
+    """안테나 전력 ≤ P/M 인 복소 MIMO BC의 DPC 합용량.
+
+    Yu, Lan의 쌍대 MAC: 대각 잡음 n 에 대해 Σ (P/M) n_i ≤ 1 이고
+    사용자 전력합이 1 이하일 때의 전송률을 잡음에 대해 최소화한다.
+    잡음이 안테나에 균등하면 합전력 용량과 같다.
+    """
+    channel = np.atleast_2d(np.asarray(channel, dtype=np.complex128))
+    _n_users, n_tx = channel.shape
+    if power <= 0.0:
+        return 0.0
+    rho = (power / n_tx) / noise
+    users = channel.conj()
+
+    def evaluate(share: np.ndarray) -> tuple[float, np.ndarray]:
+        variance = share / rho
+        whitened = channel * (1.0 / np.sqrt(variance))
+        rate, powers = _mac_rate_and_q(whitened, 1.0, noise=1.0)
+        covariance = np.diag(variance).astype(np.complex128)
+        for index in range(users.shape[0]):
+            if powers[index] > 0.0:
+                covariance += powers[index] * np.outer(users[index], users[index].conj())
+        inverse_diag = np.real(np.diag(np.linalg.inv(covariance)))
+        grad_variance = (inverse_diag - 1.0 / variance) / np.log(2.0)
+        return rate, grad_variance / rho
+
+    share = np.full(n_tx, 1.0 / n_tx)
+    rate, grad = evaluate(share)
+    for _ in range(30):
+        direction = grad - float(np.mean(grad))
+        if float(np.linalg.norm(direction)) < 1e-4:
+            break
+        step = 0.5
+        improved = False
+        for _trial in range(10):
+            candidate = share - step * direction
+            candidate = np.maximum(candidate, 1e-10)
+            candidate /= float(np.sum(candidate))
+            candidate_rate, candidate_grad = evaluate(candidate)
+            if candidate_rate <= rate + 1e-7:
+                share, rate, grad = candidate, candidate_rate, candidate_grad
+                improved = True
+                break
+            step *= 0.4
+        if not improved:
+            break
+    return float(rate)
+
+
 def _zf_waterfill(channel: np.ndarray, power: float) -> float:
     """제로포싱 후 물 채우기. channel은 K x M, K <= M."""
     gram = channel @ channel.conj().T
@@ -777,49 +1172,66 @@ def plot_dpc_zf_vs_snr(out_path: Path, n_channels: int = 400) -> Path:
     return out_path
 
 
+def ergodic_dpc_wmmse_zf(
+    n_tx: int,
+    n_users: int,
+    snr_db: np.ndarray,
+    n_channels: int = 400,
+    seed: int = 0,
+    wmmse_iter: int = 40,
+    wmmse_tol: float = 1e-4,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """같은 레일리 채널에서 DPC, WMMSE, ZF 에르고딕 합전송률."""
+    rng = np.random.default_rng(seed)
+    dpc = np.zeros(len(snr_db))
+    wmmse = np.zeros(len(snr_db))
+    zf = np.zeros(len(snr_db))
+    powers = 10.0 ** (np.asarray(snr_db, dtype=float) / 10.0)
+    report_every = max(1, min(50, n_channels // 5))
+    for sample in range(n_channels):
+        channel = _rayleigh(n_users, n_tx, rng)
+        for index, power in enumerate(powers):
+            level = float(power)
+            dpc[index] += complex_dpc_sum_capacity(channel, level)
+            wmmse[index] += wmmse_sum_rate(
+                channel, level, n_iter=wmmse_iter, tol=wmmse_tol
+            )
+            zf[index] += _zf_waterfill(channel, level)
+        if (sample + 1) % report_every == 0:
+            print(f"  채널 {sample + 1}/{n_channels}", flush=True)
+    dpc /= n_channels
+    wmmse /= n_channels
+    zf /= n_channels
+    return dpc, wmmse, zf
+
+
 def plot_m4k4_vs_snr(out_path: Path, n_channels: int = 400) -> Path:
-    """송신 안테나 4개, 사용자 4명인 복소 MIMO BC의 DPC와 ZF.
+    """송신 안테나 4개, 사용자 4명인 복소 MIMO BC의 DPC, WMMSE, ZF.
 
     SNR 30 dB에서 DPC 합용량은 약 35 bps/Hz이다.
     채널은 i.i.d. CN(0,1), 잡음분산 1, SNR = P/σ².
     """
     _korean_font()
     snr_db = np.linspace(0.0, 30.0, 31)
-    dpc, zf = ergodic_dpc_zf(4, 4, snr_db, n_channels=n_channels, seed=2)
+    dpc, wmmse, zf = ergodic_dpc_wmmse_zf(4, 4, snr_db, n_channels=n_channels, seed=2)
 
     fig, axis = plt.subplots(figsize=(7.4, 5.6), constrained_layout=True)
     axis.plot(snr_db, dpc, color="#0072B2", lw=2.2, label="DPC")
+    axis.plot(snr_db, wmmse, color="#D55E00", lw=2.2, ls="-.", label="WMMSE")
     axis.plot(snr_db, zf, color="#009E73", lw=2.2, ls="--", label="ZF")
 
-    rate_mark = 16.0
-    snr_dpc = _snr_at_rate(snr_db, dpc, rate_mark)
-    snr_zf = _snr_at_rate(snr_db, zf, rate_mark)
-    axis.annotate(
-        "",
-        xy=(snr_zf, rate_mark),
-        xytext=(snr_dpc, rate_mark),
-        arrowprops={"arrowstyle": "<->", "color": "#333333", "lw": 1.0},
-    )
+    axis.scatter([30.0], [dpc[-1]], s=28, color="#0072B2", zorder=5)
+    axis.scatter([30.0], [wmmse[-1]], s=28, color="#D55E00", zorder=5)
+    axis.scatter([30.0], [zf[-1]], s=28, color="#009E73", zorder=5)
     axis.text(
-        0.5 * (snr_dpc + snr_zf),
-        rate_mark + 0.7,
-        f"{snr_zf - snr_dpc:.2f} dB",
-        ha="center",
-        va="bottom",
-        fontsize=8,
-        bbox={"boxstyle": "round,pad=0.15", "fc": "white", "ec": "none", "alpha": 0.85},
-    )
-
-    axis.scatter([30.0], [dpc[-1]], s=36, color="#0072B2", zorder=5)
-    axis.scatter([30.0], [zf[-1]], s=36, color="#009E73", zorder=5)
-    axis.text(
-        0.46,
-        0.97,
-        f"SNR 30 dB\nDPC   {dpc[-1]:.1f}\nZF     {zf[-1]:.1f}",
+        0.98,
+        0.04,
+        f"SNR 30 dB\nDPC      {dpc[-1]:.1f}\nWMMSE  {wmmse[-1]:.1f}\nZF         {zf[-1]:.1f}",
         transform=axis.transAxes,
-        ha="left",
-        va="top",
+        ha="right",
+        va="bottom",
         fontsize=9,
+        family="DejaVu Sans Mono",
         linespacing=1.45,
         bbox={"boxstyle": "round,pad=0.35", "fc": "white", "ec": "#cccccc"},
     )
@@ -832,14 +1244,80 @@ def plot_m4k4_vs_snr(out_path: Path, n_channels: int = 400) -> Path:
     axis.grid(True, alpha=0.35)
     axis.legend(loc="upper left", fontsize=9, framealpha=0.92)
     fig.suptitle(
-        "MIMO broadcast channel    ·    DPC vs. zero-forcing",
+        "MIMO broadcast channel    ·    DPC, WMMSE, ZF",
         fontsize=11,
     )
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path, dpi=160)
     plt.close(fig)
-    print(f"M=4, K=4, SNR 30 dB:  DPC {dpc[-1]:.2f},  ZF {zf[-1]:.2f} bps/Hz")
+    print(
+        f"M=4, K=4, SNR 30 dB:  DPC {dpc[-1]:.2f},  "
+        f"WMMSE {wmmse[-1]:.2f},  ZF {zf[-1]:.2f} bps/Hz"
+    )
+    return out_path
+
+
+def plot_m64k16_vs_snr(out_path: Path, n_channels: int = 40) -> Path:
+    """송신 안테나 64개, 사용자 16명. 합전력 제약의 DPC, WMMSE, ZF.
+
+    채널은 i.i.d. CN(0,1), 잡음분산 1, SNR = P/σ².
+    M 이 K 보다 크면 ZF 가 DPC 에 가깝다.
+    """
+    _korean_font()
+    snr_db = np.linspace(0.0, 30.0, 31)
+    dpc, wmmse, zf = ergodic_dpc_wmmse_zf(
+        64,
+        16,
+        snr_db,
+        n_channels=n_channels,
+        seed=4,
+        wmmse_iter=25,
+        wmmse_tol=1e-3,
+    )
+
+    fig, axis = plt.subplots(figsize=(7.4, 5.6), constrained_layout=True)
+    axis.plot(snr_db, dpc, color="#0072B2", lw=2.2, label="DPC")
+    axis.plot(snr_db, wmmse, color="#D55E00", lw=2.2, ls="-.", label="WMMSE")
+    axis.plot(snr_db, zf, color="#009E73", lw=2.2, ls="--", label="ZF")
+
+    axis.scatter([30.0], [dpc[-1]], s=28, color="#0072B2", zorder=5)
+    axis.scatter([30.0], [wmmse[-1]], s=28, color="#D55E00", zorder=5)
+    axis.scatter([30.0], [zf[-1]], s=28, color="#009E73", zorder=5)
+    axis.text(
+        0.98,
+        0.04,
+        f"SNR 30 dB\nDPC    {dpc[-1]:5.1f}\nWMMSE  {wmmse[-1]:5.1f}\nZF     {zf[-1]:5.1f}",
+        transform=axis.transAxes,
+        ha="right",
+        va="bottom",
+        fontsize=9,
+        family="DejaVu Sans Mono",
+        linespacing=1.45,
+        bbox={"boxstyle": "round,pad=0.35", "fc": "white", "ec": "#cccccc"},
+    )
+
+    axis.set_xlim(0, 30)
+    axis.set_ylim(0, 210)
+    axis.set_xlabel("SNR (dB)")
+    axis.set_ylabel("Capacity (bps/Hz)")
+    axis.set_title("M = 64,  K = 16")
+    axis.grid(True, alpha=0.35)
+    axis.legend(loc="upper left", fontsize=9, framealpha=0.92)
+    fig.suptitle(
+        "MIMO broadcast channel    ·    DPC, WMMSE, ZF",
+        fontsize=11,
+    )
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path, dpi=160)
+    plt.close(fig)
+    for mark in (0, 10, 20, 30):
+        index = int(mark)
+        print(
+            f"M=64, K=16, SNR {mark:2d} dB:  "
+            f"DPC {dpc[index]:.2f},  WMMSE {wmmse[index]:.2f},  ZF {zf[index]:.2f}"
+        )
     return out_path
 
 
@@ -874,6 +1352,17 @@ def main() -> None:
         type=Path,
         default=Path(__file__).resolve().parent / "dpc_zf_m4k4_vs_snr.png",
     )
+    parser.add_argument(
+        "--m64-out",
+        type=Path,
+        default=Path(__file__).resolve().parent / "dpc_wmmse_zf_m64k16_vs_snr.png",
+    )
+    parser.add_argument(
+        "--m64-channels",
+        type=int,
+        default=40,
+        help="M=64, K=16 에르고딕 평균에 쓸 채널 수",
+    )
     parser.add_argument("--channels", type=int, default=400, help="에르고딕 평균에 쓸 채널 수")
     args = parser.parse_args()
 
@@ -896,6 +1385,7 @@ def main() -> None:
     region = plot_paper_capacity_region(args.region_out)
     sumrate = plot_dpc_zf_vs_snr(args.sumrate_out, n_channels=args.channels)
     m4 = plot_m4k4_vs_snr(args.m4_out, n_channels=args.channels)
+    m64 = plot_m64k16_vs_snr(args.m64_out, n_channels=args.m64_channels)
     out = plot_capacity_vs_sinr(
         args.out,
         alpha=args.alpha,
@@ -907,6 +1397,7 @@ def main() -> None:
     print(f"용량 영역 그림: {region}")
     print(f"DPC/ZF 합용량 그림: {sumrate}")
     print(f"M=4, K=4 그림: {m4}")
+    print(f"M=64, K=16 그림: {m64}")
     print(f"SINR 그림: {out}")
 
 
