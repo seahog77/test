@@ -777,6 +777,72 @@ def plot_dpc_zf_vs_snr(out_path: Path, n_channels: int = 400) -> Path:
     return out_path
 
 
+def plot_m4k4_vs_snr(out_path: Path, n_channels: int = 400) -> Path:
+    """송신 안테나 4개, 사용자 4명인 복소 MIMO BC의 DPC와 ZF.
+
+    SNR 30 dB에서 DPC 합용량은 약 35 bps/Hz이다.
+    채널은 i.i.d. CN(0,1), 잡음분산 1, SNR = P/σ².
+    """
+    _korean_font()
+    snr_db = np.linspace(0.0, 30.0, 31)
+    dpc, zf = ergodic_dpc_zf(4, 4, snr_db, n_channels=n_channels, seed=2)
+
+    fig, axis = plt.subplots(figsize=(7.4, 5.6), constrained_layout=True)
+    axis.plot(snr_db, dpc, color="#0072B2", lw=2.2, label="DPC")
+    axis.plot(snr_db, zf, color="#009E73", lw=2.2, ls="--", label="ZF")
+
+    rate_mark = 16.0
+    snr_dpc = _snr_at_rate(snr_db, dpc, rate_mark)
+    snr_zf = _snr_at_rate(snr_db, zf, rate_mark)
+    axis.annotate(
+        "",
+        xy=(snr_zf, rate_mark),
+        xytext=(snr_dpc, rate_mark),
+        arrowprops={"arrowstyle": "<->", "color": "#333333", "lw": 1.0},
+    )
+    axis.text(
+        0.5 * (snr_dpc + snr_zf),
+        rate_mark + 0.7,
+        f"{snr_zf - snr_dpc:.2f} dB",
+        ha="center",
+        va="bottom",
+        fontsize=8,
+        bbox={"boxstyle": "round,pad=0.15", "fc": "white", "ec": "none", "alpha": 0.85},
+    )
+
+    axis.scatter([30.0], [dpc[-1]], s=36, color="#0072B2", zorder=5)
+    axis.scatter([30.0], [zf[-1]], s=36, color="#009E73", zorder=5)
+    axis.text(
+        0.46,
+        0.97,
+        f"SNR 30 dB\nDPC   {dpc[-1]:.1f}\nZF     {zf[-1]:.1f}",
+        transform=axis.transAxes,
+        ha="left",
+        va="top",
+        fontsize=9,
+        linespacing=1.45,
+        bbox={"boxstyle": "round,pad=0.35", "fc": "white", "ec": "#cccccc"},
+    )
+
+    axis.set_xlim(0, 30)
+    axis.set_ylim(0, 42)
+    axis.set_xlabel("SNR (dB)")
+    axis.set_ylabel("Capacity (bps/Hz)")
+    axis.set_title("M = 4,  K = 4")
+    axis.grid(True, alpha=0.35)
+    axis.legend(loc="upper left", fontsize=9, framealpha=0.92)
+    fig.suptitle(
+        "MIMO broadcast channel    ·    DPC vs. zero-forcing",
+        fontsize=11,
+    )
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path, dpi=160)
+    plt.close(fig)
+    print(f"M=4, K=4, SNR 30 dB:  DPC {dpc[-1]:.2f},  ZF {zf[-1]:.2f} bps/Hz")
+    return out_path
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="BC 채널 DPC 용량 계산 및 SINR-capacity 그래프")
     parser.add_argument("--alpha", type=float, default=0.5, help="강사용자 전력 비율 α")
@@ -803,6 +869,11 @@ def main() -> None:
         type=Path,
         default=Path(__file__).resolve().parent / "dpc_zf_sumrate_vs_snr.png",
     )
+    parser.add_argument(
+        "--m4-out",
+        type=Path,
+        default=Path(__file__).resolve().parent / "dpc_zf_m4k4_vs_snr.png",
+    )
     parser.add_argument("--channels", type=int, default=400, help="에르고딕 평균에 쓸 채널 수")
     args = parser.parse_args()
 
@@ -824,6 +895,7 @@ def main() -> None:
         print(f"{alpha:8.3f} {b1:8.2f} {b2:8.2f} {total:8.2f}")
     region = plot_paper_capacity_region(args.region_out)
     sumrate = plot_dpc_zf_vs_snr(args.sumrate_out, n_channels=args.channels)
+    m4 = plot_m4k4_vs_snr(args.m4_out, n_channels=args.channels)
     out = plot_capacity_vs_sinr(
         args.out,
         alpha=args.alpha,
@@ -834,6 +906,7 @@ def main() -> None:
     print()
     print(f"용량 영역 그림: {region}")
     print(f"DPC/ZF 합용량 그림: {sumrate}")
+    print(f"M=4, K=4 그림: {m4}")
     print(f"SINR 그림: {out}")
 
 
