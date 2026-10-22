@@ -621,6 +621,162 @@ def _print_vector_table() -> None:
         print(f"{value_db:10.1f} {dpc:8.3f} {zf:8.3f} {tdma:8.3f} {best:8.3f}")
 
 
+def _rayleigh(n_users: int, n_tx: int, rng: np.random.Generator) -> np.ndarray:
+    """사용자당 안테나 1개. 각 행이 CN(0, I) 채널."""
+    real = rng.normal(size=(n_users, n_tx))
+    imag = rng.normal(size=(n_users, n_tx))
+    return (real + 1j * imag) / np.sqrt(2.0)
+
+
+def _dpc_uniform(channel: np.ndarray, power: float) -> float:
+    """쌍대 MAC에 전력을 균등 분배한 DPC 합용량.
+
+    M >= K 이면 높은 SNR에서 이 분배가 합용량이다
+    (Lee–Jindal, eq. (12)). 단위는 bits/channel use.
+    """
+    n_users, n_tx = channel.shape
+    covariance = np.eye(n_tx, dtype=np.complex128)
+    share = power / n_users
+    for user in range(n_users):
+        row = channel[user]
+        covariance += share * np.outer(row, row.conj())
+    _sign, logdet = np.linalg.slogdet(covariance)
+    return float(logdet / np.log(2.0))
+
+
+def _zf_waterfill(channel: np.ndarray, power: float) -> float:
+    """제로포싱 후 물 채우기. channel은 K x M, K <= M."""
+    gram = channel @ channel.conj().T
+    leakage = np.real(np.diag(np.linalg.inv(gram)))
+    gains = 1.0 / leakage
+    low, high = 0.0, power + float(np.max(1.0 / gains)) + 1.0
+    for _ in range(50):
+        level = 0.5 * (low + high)
+        allocated = np.maximum(0.0, level - 1.0 / gains)
+        if float(np.sum(allocated)) > power:
+            high = level
+        else:
+            low = level
+    allocated = np.maximum(0.0, low - 1.0 / gains)
+    return float(np.sum(np.log2(1.0 + allocated * gains)))
+
+
+def ergodic_dpc_zf(
+    n_tx: int,
+    n_users: int,
+    snr_db: np.ndarray,
+    n_channels: int = 400,
+    seed: int = 0,
+) -> tuple[np.ndarray, np.ndarray]:
+    """레일리 페이딩 MIMO BC의 에르고딕 DPC 합용량과 ZF 합전송률."""
+    rng = np.random.default_rng(seed)
+    dpc = np.zeros(len(snr_db))
+    zf = np.zeros(len(snr_db))
+    powers = 10.0 ** (np.asarray(snr_db, dtype=float) / 10.0)
+    for _ in range(n_channels):
+        channel = _rayleigh(n_users, n_tx, rng)
+        for index, power in enumerate(powers):
+            dpc[index] += _dpc_uniform(channel, float(power))
+            zf[index] += _zf_waterfill(channel, float(power))
+    dpc /= n_channels
+    zf /= n_channels
+    return dpc, zf
+
+
+def _snr_at_rate(snr_db: np.ndarray, rate: np.ndarray, target: float) -> float:
+    """전송률 곡선을 보간해 target bits가 되는 SNR(dB)."""
+    if target <= rate[0]:
+        return float(snr_db[0])
+    if target >= rate[-1]:
+        return float(snr_db[-1])
+    return float(np.interp(target, rate, snr_db))
+
+
+def plot_dpc_zf_vs_snr(out_path: Path, n_channels: int = 400) -> Path:
+    """Lee–Jindal Fig. 2. SNR 30 dB에서 M=5 ZF 용량은 약 34 bps/Hz.
+
+    복소 가우시안 BC, 사용자당 수신 안테나 1개, 채널은 i.i.d. CN(0,1),
+    잡음분산 1, SNR = P/σ².
+    """
+    _korean_font()
+    snr_db = np.linspace(0.0, 30.0, 31)
+    dpc10, zf10 = ergodic_dpc_zf(10, 5, snr_db, n_channels=n_channels, seed=1)
+    dpc5, zf5 = ergodic_dpc_zf(5, 5, snr_db, n_channels=n_channels, seed=1)
+
+    fig, axis = plt.subplots(figsize=(7.4, 5.6), constrained_layout=True)
+    axis.plot(snr_db, dpc10, color="#0072B2", lw=2.0, label="DPC,  M=10, K=5")
+    axis.plot(snr_db, zf10, color="#009E73", lw=2.0, ls="--", label="ZF,  M=10, K=5")
+    axis.plot(snr_db, dpc5, color="#0072B2", lw=2.0, ls="-.", label="DPC,  M=5, K=5")
+    axis.plot(snr_db, zf5, color="#009E73", lw=2.0, ls=":", label="ZF,  M=5, K=5")
+
+    # 같은 전송률에 필요한 SNR 차이. 논문의 5.55 dB, 9.88 dB에 대응한다.
+    rate_m5 = 30.0
+    left_m5 = _snr_at_rate(snr_db, dpc5, rate_m5)
+    right_m5 = _snr_at_rate(snr_db, zf5, rate_m5)
+    axis.annotate(
+        "",
+        xy=(right_m5, rate_m5),
+        xytext=(left_m5, rate_m5),
+        arrowprops={"arrowstyle": "<->", "color": "#333333", "lw": 1.0},
+    )
+    axis.text(
+        0.5 * (left_m5 + right_m5),
+        rate_m5 + 1.15,
+        f"{right_m5 - left_m5:.2f} dB",
+        ha="center",
+        va="bottom",
+        fontsize=8,
+    )
+    rate_zf = 22.0
+    left_zf = _snr_at_rate(snr_db, zf10, rate_zf)
+    right_zf = _snr_at_rate(snr_db, zf5, rate_zf)
+    axis.annotate(
+        "",
+        xy=(right_zf, rate_zf),
+        xytext=(left_zf, rate_zf),
+        arrowprops={"arrowstyle": "<->", "color": "#333333", "lw": 1.0},
+    )
+    axis.text(
+        0.5 * (left_zf + right_zf),
+        rate_zf + 1.15,
+        f"{right_zf - left_zf:.2f} dB",
+        ha="center",
+        va="bottom",
+        fontsize=8,
+    )
+    level_zf = float(zf5[-1])
+    axis.scatter([30.0], [level_zf], s=32, color="#009E73", zorder=5)
+    axis.annotate(
+        f"SNR 30 dB\nZF, M=5: {level_zf:.1f}",
+        xy=(30.0, level_zf),
+        xytext=(12.5, 46.5),
+        fontsize=8,
+        color="#006b4f",
+        arrowprops={"arrowstyle": "->", "color": "#009E73", "lw": 0.8},
+    )
+
+    axis.set_xlim(0, 30)
+    axis.set_ylim(0, 55)
+    axis.set_xlabel("SNR (dB)")
+    axis.set_ylabel("Capacity (bps/Hz)")
+    axis.set_title("Sum rate vs. SNR    ·    DPC vs. zero-forcing")
+    axis.grid(True, alpha=0.35)
+    axis.legend(loc="upper left", fontsize=8, framealpha=0.92)
+    fig.suptitle(
+        "Lee & Jindal, Fig. 2    ·    MIMO broadcast channel",
+        fontsize=11,
+    )
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path, dpi=160)
+    plt.close(fig)
+    print(
+        f"SNR 30 dB:  M=5 DPC {dpc5[-1]:.2f}, ZF {zf5[-1]:.2f}   "
+        f"M=10 DPC {dpc10[-1]:.2f}, ZF {zf10[-1]:.2f} bps/Hz"
+    )
+    return out_path
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="BC 채널 DPC 용량 계산 및 SINR-capacity 그래프")
     parser.add_argument("--alpha", type=float, default=0.5, help="강사용자 전력 비율 α")
@@ -642,6 +798,12 @@ def main() -> None:
         type=Path,
         default=Path(__file__).resolve().parent / "cioffi_bc_capacity_region.png",
     )
+    parser.add_argument(
+        "--sumrate-out",
+        type=Path,
+        default=Path(__file__).resolve().parent / "dpc_zf_sumrate_vs_snr.png",
+    )
+    parser.add_argument("--channels", type=int, default=400, help="에르고딕 평균에 쓸 채널 수")
     args = parser.parse_args()
 
     nats = verify_paper_appendix()
@@ -661,6 +823,7 @@ def main() -> None:
     for alpha, b1, b2, total in cioffi_rate_table():
         print(f"{alpha:8.3f} {b1:8.2f} {b2:8.2f} {total:8.2f}")
     region = plot_paper_capacity_region(args.region_out)
+    sumrate = plot_dpc_zf_vs_snr(args.sumrate_out, n_channels=args.channels)
     out = plot_capacity_vs_sinr(
         args.out,
         alpha=args.alpha,
@@ -670,6 +833,7 @@ def main() -> None:
     )
     print()
     print(f"용량 영역 그림: {region}")
+    print(f"DPC/ZF 합용량 그림: {sumrate}")
     print(f"SINR 그림: {out}")
 
 
