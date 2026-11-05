@@ -1173,7 +1173,7 @@ JSON 형식으로 출력:
         // 로컬 테스트: 'http://localhost:3000'
         // Cloudflare Workers: 'https://your-worker.your-subdomain.workers.dev'
         // 시뮬레이션: null
-        const API_BASE_URL = null; // null이면 시뮬레이션 모드
+        const API_BASE_URL = 'http://localhost:3000'; // Express 서버 연결
         
         async function getClientResponse() {
             if (API_BASE_URL) {
