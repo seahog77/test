@@ -1,0 +1,15 @@
+# Cloudflare Workers 설정 파일
+# 배포 전에 name과 account_id를 수정하세요
+
+name = "virtual-counseling-lab-api"
+main = "cloudflare-worker.js"
+compatibility_date = "2024-01-01"
+
+# 환경 변수는 Wrangler CLI로 설정하세요:
+# wrangler secret put OPENAI_API_KEY
+
+[env.production]
+name = "virtual-counseling-lab-api"
+
+[env.staging]
+name = "virtual-counseling-lab-api-staging"
