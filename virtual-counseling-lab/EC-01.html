@@ -1,0 +1,1657 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>가상내담자 실습실 EC-01 - 노인상담</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-main: #EFF2EE;
+            --bg-paper: #FAFBF9;
+            --text-main: #1a1a1a;
+            --text-secondary: #4a4a4a;
+            --accent: #44705A;
+            --accent-light: #5a8a70;
+            --warning: #A4502C;
+            --border: #d0d5ce;
+            --client-bubble: #f5f7f4;
+            --counselor-bubble: #e8ede7;
+            --shadow: rgba(0, 0, 0, 0.08);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-main: #1a1d1a;
+                --bg-paper: #242724;
+                --text-main: #e8e8e8;
+                --text-secondary: #b8b8b8;
+                --accent: #6a9a7f;
+                --accent-light: #7faf94;
+                --warning: #d4754c;
+                --border: #3a3d3a;
+                --client-bubble: #2a2d2a;
+                --counselor-bubble: #323532;
+                --shadow: rgba(0, 0, 0, 0.3);
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans KR', sans-serif;
+            background: var(--bg-main);
+            color: var(--text-main);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-family: 'Gowun Batang', serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+        }
+
+        .progress-steps {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .step-number {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .step.active .step-number {
+            background: var(--accent);
+            color: white;
+        }
+
+        .step.active {
+            color: var(--accent);
+            font-weight: 500;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+
+        @media (max-width: 860px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .intake-sheet {
+                position: static !important;
+                margin-bottom: 20px;
+            }
+            
+            .chat-panel {
+                min-height: 600px;
+            }
+        }
+
+        .intake-sheet {
+            background: var(--bg-paper);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 8px var(--shadow);
+            position: sticky;
+            top: 20px;
+        }
+
+        .intake-sheet h2 {
+            font-family: 'Gowun Batang', serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid var(--accent);
+        }
+
+        .case-number {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        .intake-field {
+            margin-bottom: 18px;
+            padding-bottom: 18px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .intake-field:last-of-type {
+            border-bottom: none;
+        }
+
+        .field-label {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--accent);
+            margin-bottom: 6px;
+        }
+
+        .field-content {
+            font-family: 'Gowun Batang', serif;
+            font-size: 0.95rem;
+            line-height: 1.7;
+        }
+
+        .practice-goals {
+            background: var(--accent-light);
+            background: linear-gradient(135deg, rgba(68, 112, 90, 0.1) 0%, rgba(90, 138, 112, 0.05) 100%);
+            border-left: 3px solid var(--accent);
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 4px;
+        }
+
+        .practice-goals h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 10px;
+        }
+
+        .practice-goals ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .practice-goals li {
+            font-size: 0.85rem;
+            padding: 4px 0;
+            padding-left: 16px;
+            position: relative;
+        }
+
+        .practice-goals li:before {
+            content: '•';
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        .recommended-length {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 10px;
+            font-style: italic;
+        }
+
+        .chat-panel {
+            background: var(--bg-paper);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px var(--shadow);
+            display: flex;
+            flex-direction: column;
+            height: 700px;
+        }
+
+        .chat-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Gowun Batang', serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        .client-info {
+            flex: 1;
+        }
+
+        .client-name {
+            font-family: 'Gowun Batang', serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .session-info {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .chat-meta {
+            display: flex;
+            gap: 15px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .scene-description {
+            text-align: center;
+            padding: 20px;
+            font-family: 'Gowun Batang', serif;
+            font-style: italic;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message.client {
+            align-items: flex-start;
+        }
+
+        .message.counselor {
+            align-items: flex-end;
+        }
+
+        .message-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+
+        .message-bubble {
+            max-width: 75%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            box-shadow: 0 1px 2px var(--shadow);
+        }
+
+        .message.client .message-bubble {
+            background: var(--client-bubble);
+            border-bottom-left-radius: 4px;
+            font-family: 'Gowun Batang', serif;
+        }
+
+        .message.counselor .message-bubble {
+            background: var(--counselor-bubble);
+            border-bottom-right-radius: 4px;
+        }
+
+        .thinking {
+            text-align: center;
+            padding: 10px;
+            font-style: italic;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .notice {
+            background: rgba(164, 80, 44, 0.1);
+            border-left: 3px solid var(--warning);
+            padding: 12px 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+
+        .chat-input {
+            padding: 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-family: 'IBM Plex Sans KR', sans-serif;
+            font-size: 0.95rem;
+            resize: vertical;
+            background: var(--bg-main);
+            color: var(--text-main);
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .input-help {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 6px;
+        }
+
+        button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-family: 'IBM Plex Sans KR', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 10px;
+        }
+
+        button:hover:not(:disabled) {
+            background: var(--accent-light);
+        }
+
+        button:disabled {
+            background: var(--border);
+            cursor: not-allowed;
+        }
+
+        button.secondary {
+            background: transparent;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+        }
+
+        button.secondary:hover:not(:disabled) {
+            background: rgba(68, 112, 90, 0.05);
+        }
+
+        .conceptualization-panel,
+        .supervision-panel,
+        .submission-panel {
+            display: none;
+            background: var(--bg-paper);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 8px var(--shadow);
+        }
+
+        .panel-title {
+            font-family: 'Gowun Batang', serif;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 20px;
+        }
+
+        .form-field {
+            margin-bottom: 25px;
+        }
+
+        .form-label {
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .form-hint {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            font-style: italic;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-family: 'IBM Plex Sans KR', sans-serif;
+            font-size: 0.95rem;
+            background: var(--bg-main);
+            color: var(--text-main);
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .feedback-warning {
+            background: rgba(68, 112, 90, 0.05);
+            border: 1px solid var(--accent);
+            padding: 15px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            margin-bottom: 20px;
+        }
+
+        .feedback-summary {
+            font-family: 'Gowun Batang', serif;
+            font-size: 1rem;
+            line-height: 1.8;
+            margin-bottom: 30px;
+            padding: 15px;
+            background: rgba(68, 112, 90, 0.05);
+            border-radius: 6px;
+        }
+
+        .feedback-section {
+            margin-bottom: 30px;
+        }
+
+        .feedback-section h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 15px;
+        }
+
+        .rating-card {
+            background: var(--bg-main);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+
+        .rating-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .rating-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .stars {
+            color: #f4a460;
+            font-size: 1.2rem;
+        }
+
+        .rating-evidence {
+            font-family: 'Gowun Batang', serif;
+            font-size: 0.9rem;
+            background: var(--bg-paper);
+            padding: 10px;
+            border-left: 2px solid var(--accent);
+            margin: 10px 0;
+            font-style: italic;
+        }
+
+        .rating-comment {
+            font-size: 0.9rem;
+            line-height: 1.6;
+            margin-top: 8px;
+        }
+
+        .crisis-alert {
+            background: rgba(164, 80, 44, 0.1);
+            border: 2px solid var(--warning);
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+
+        .crisis-alert h4 {
+            color: var(--warning);
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .layer-info {
+            background: var(--bg-main);
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+
+        .alternative-response {
+            background: var(--bg-main);
+            border: 1px solid var(--border);
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+
+        .alt-original {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .alt-better {
+            font-family: 'Gowun Batang', serif;
+            font-size: 0.95rem;
+            color: var(--accent);
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .alt-reason {
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        .design-sheet {
+            background: rgba(68, 112, 90, 0.05);
+            border: 1px solid var(--accent);
+            border-radius: 8px;
+            padding: 25px;
+            margin-top: 30px;
+        }
+
+        .design-sheet h3 {
+            font-family: 'Gowun Batang', serif;
+            font-size: 1.2rem;
+            color: var(--accent);
+            margin-bottom: 20px;
+        }
+
+        .design-field {
+            margin-bottom: 15px;
+        }
+
+        .design-field-label {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--accent);
+            margin-bottom: 5px;
+        }
+
+        .design-field-content {
+            font-size: 0.9rem;
+            line-height: 1.7;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            padding: 20px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            border-top: 1px solid var(--border);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>가상내담자 실습실 EC-01</h1>
+            <p class="subtitle">노인상담 실습</p>
+        </header>
+
+        <div class="progress-steps">
+            <div class="step active" id="step1">
+                <span class="step-number">1</span>
+                <span>접수 기록 읽기</span>
+            </div>
+            <div class="step" id="step2">
+                <span class="step-number">2</span>
+                <span>상담하기</span>
+            </div>
+            <div class="step" id="step3">
+                <span class="step-number">3</span>
+                <span>슈퍼비전</span>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="intake-sheet">
+                <h2>접수면접 기록지</h2>
+                <p class="case-number">No. EC-01</p>
+
+                <div class="intake-field">
+                    <div class="field-label">내담자</div>
+                    <div class="field-content">김순자(가명) · 여 · 74세</div>
+                </div>
+
+                <div class="intake-field">
+                    <div class="field-label">가족</div>
+                    <div class="field-content">1년 전 배우자 사별, 현재 혼자 거주. 기혼 딸(45세) 1명, 손녀(고등학생) 1명.</div>
+                </div>
+
+                <div class="intake-field">
+                    <div class="field-label">의뢰 경로</div>
+                    <div class="field-content">딸의 권유</div>
+                </div>
+
+                <div class="intake-field">
+                    <div class="field-label">주호소 (내담자 말 그대로 인용)</div>
+                    <div class="field-content">"딸이 가보라 캐서 오긴 왔는데요… 요새 잠을 못 자겠고, 밥맛도 없고 그래요."</div>
+                </div>
+
+                <div class="intake-field">
+                    <div class="field-label">행동 관찰</div>
+                    <div class="field-content">약간 구부정한 자세, 눈맞춤 적음, 말수 적음. 가방을 계속 만지작거림. 질문에 짧게 답하며 자발적으로 이야기를 이어가지 않음.</div>
+                </div>
+
+                <div class="intake-field">
+                    <div class="field-label">최근 변화</div>
+                    <div class="field-content">3개월 전부터 불면과 식욕 저하가 심해짐. 딸이 여러 번 권유했으나 거부하다가 이번에 처음 방문함.</div>
+                </div>
+
+                <div class="practice-goals">
+                    <h3>이번 회기 실습 목표</h3>
+                    <ul>
+                        <li>신체 호소 뒤의 애도와 죄책감 탐색하기</li>
+                        <li>조언·안심시키기 대신 감정 반영하기</li>
+                        <li>위기 신호를 직접적이고 차분하게 평가하기</li>
+                    </ul>
+                    <p class="recommended-length">권장 분량: 상담자 발화 15~20회 (약 20~30분)</p>
+                </div>
+            </div>
+
+            <div id="chatPanel" class="chat-panel">
+                <div class="chat-header">
+                    <div class="avatar">김</div>
+                    <div class="client-info">
+                        <div class="client-name">김순자 님</div>
+                        <div class="session-info">1회기 · 가상내담자</div>
+                    </div>
+                    <div class="chat-meta">
+                        <div id="timer">00:00</div>
+                        <div id="turnCount">0 / 권장 15~20회</div>
+                    </div>
+                </div>
+
+                <div class="chat-messages" id="messages">
+                    <div class="scene-description">
+                        내담자가 조용히 들어와 의자에 앉습니다. 가방을 무릎 위에 올려놓고 두 손으로 잡고 있습니다.
+                    </div>
+                </div>
+
+                <div class="chat-input">
+                    <textarea id="counselorInput" placeholder="어서 오세요. 저는 상담자 ○○○입니다. 오시느라 수고하셨어요." disabled></textarea>
+                    <div class="input-help">Enter로 전송 · Shift+Enter로 줄바꿈</div>
+                    <button id="sendBtn" disabled>전송</button>
+                    <button id="endSessionBtn" class="secondary" style="display: none;">상담 마치고 슈퍼비전으로</button>
+                </div>
+            </div>
+
+            <div id="conceptualizationPanel" class="conceptualization-panel">
+                <h2 class="panel-title">나의 사례개념화</h2>
+                <p style="font-size: 0.9rem; margin-bottom: 25px; color: var(--text-secondary);">
+                    AI 슈퍼비전을 받기 전에 먼저 작성해 주세요.
+                </p>
+
+                <div class="form-field">
+                    <label class="form-label">학번</label>
+                    <input type="text" id="studentId" placeholder="학번을 입력하세요">
+                </div>
+
+                <div class="form-field">
+                    <label class="form-label">이름</label>
+                    <input type="text" id="studentName" placeholder="이름을 입력하세요">
+                </div>
+
+                <div class="form-field">
+                    <label class="form-label">① 호소문제 뒤의 핵심 이슈</label>
+                    <p class="form-hint">잠 못 자는 것 말고, 이분에게 실제로 무슨 일이 일어나고 있나요?</p>
+                    <textarea id="coreIssue" rows="4" placeholder="내담자가 직면한 심리적, 정서적 문제를 적어주세요."></textarea>
+                </div>
+
+                <div class="form-field">
+                    <label class="form-label">② 추정되는 핵심신념과 감정</label>
+                    <p class="form-hint">내담자는 자신과 세상을 어떻게 보고 있으며, 어떤 감정을 느끼고 있을까요?</p>
+                    <textarea id="coreBeliefs" rows="4" placeholder="내담자의 핵심신념과 주된 감정을 적어주세요."></textarea>
+                </div>
+
+                <div class="form-field">
+                    <label class="form-label">③ 위험 요인 평가</label>
+                    <p class="form-hint">위기 신호가 있었나요? 확인했나요? 어떤 수준으로 판단하시나요?</p>
+                    <textarea id="riskAssessment" rows="4" placeholder="자해/자살 위험 신호 여부, 확인 과정, 위험 수준을 적어주세요."></textarea>
+                </div>
+
+                <div class="button-group">
+                    <button id="backToChatBtn" class="secondary">상담으로 돌아가기</button>
+                    <button id="getSupervisionBtn">AI 슈퍼비전 받기</button>
+                </div>
+            </div>
+
+            <div id="supervisionPanel" class="supervision-panel">
+                <h2 class="panel-title">AI 슈퍼비전 피드백</h2>
+                <div class="feedback-warning">
+                    교수자 슈퍼비전 전 참고용입니다. 동의하지 않는 부분은 성찰지에 근거와 함께 적어 주세요.
+                </div>
+
+                <div id="feedbackContent">
+                    <div class="thinking">축어록을 검토하는 중… (30초~1분)</div>
+                </div>
+
+                <div id="designSheet" class="design-sheet hidden">
+                    <h3>🔍 숨겨진 내담자 설계서</h3>
+                    <div class="design-field">
+                        <div class="design-field-label">배경</div>
+                        <div class="design-field-content" id="designBackground"></div>
+                    </div>
+                    <div class="design-field">
+                        <div class="design-field-label">핵심신념</div>
+                        <div class="design-field-content" id="designBeliefs"></div>
+                    </div>
+                    <div class="design-field">
+                        <div class="design-field-label">공개 층위</div>
+                        <div class="design-field-content" id="designLayers"></div>
+                    </div>
+                    <div class="design-field">
+                        <div class="design-field-label">저항 방식</div>
+                        <div class="design-field-content" id="designResistance"></div>
+                    </div>
+                    <div class="design-field">
+                        <div class="design-field-label">보호요인</div>
+                        <div class="design-field-content" id="designProtective"></div>
+                    </div>
+                    <div class="design-field">
+                        <div class="design-field-label">실습 포인트</div>
+                        <div class="design-field-content" id="designPoints"></div>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button id="retrySupervisionBtn" class="secondary" style="display: none;">다시 받기</button>
+                    <button id="toSubmissionBtn">과제 제출하기</button>
+                </div>
+            </div>
+
+            <div id="submissionPanel" class="submission-panel">
+                <h2 class="panel-title">과제 제출</h2>
+
+                <div class="form-field">
+                    <label class="form-label">실습 소감</label>
+                    <p class="form-hint">AI 내담자와 상담해 보니 어땠나요? 느낀 점을 적어 주세요.</p>
+                    <textarea id="reflection" rows="6" placeholder="자유롭게 작성해 주세요."></textarea>
+                </div>
+
+                <div style="background: rgba(68, 112, 90, 0.05); padding: 20px; border-radius: 8px; margin: 25px 0;">
+                    <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 15px;">제출 방법</h3>
+                    <ol style="padding-left: 20px; line-height: 2;">
+                        <li>아래 '제출용 전체 복사' 버튼을 클릭합니다</li>
+                        <li>LMS 과제 게시판에 붙여넣기 합니다</li>
+                        <li>이어서 성찰지를 작성합니다</li>
+                    </ol>
+                    <p style="font-size: 0.85rem; color: var(--warning); margin-top: 10px; font-weight: 500;">
+                        ⚠️ 대화 기록은 창을 닫으면 사라집니다. 반드시 복사한 후 LMS에 제출하세요.
+                    </p>
+                </div>
+
+                <div class="button-group">
+                    <button id="copyAllBtn">제출용 전체 복사</button>
+                    <button id="restartBtn" class="secondary">처음부터 다시</button>
+                </div>
+
+                <div id="copyResult" style="display: none; margin-top: 20px;">
+                    <p style="color: var(--accent); font-weight: 500; margin-bottom: 10px;">✓ 복사되었습니다!</p>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary);">LMS 과제란에 붙여넣기(Ctrl+V 또는 Cmd+V) 해주세요.</p>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            시제품 · 사례는 교육용으로 가공한 가상 인물입니다. AI 응답은 실제 내담자 반응을 대신하지 않습니다.
+        </footer>
+    </div>
+
+    <script>
+        // ==================== 사례 설계서 ====================
+        const CASE = {
+            number: 'EC-01',
+            name: '김순자',
+            avatar: '김',
+            background: '74세 여성. 50년 결혼생활을 함께한 남편을 1년 전 폐암으로 사별. 남편이 기침을 한 지 2개월쯤 지나 병원에 갔고, 진단 후 3개월 만에 사망. 딸은 결혼해서 차로 30분 거리에 살며 일주일에 한 번 정도 방문. 손녀는 고등학생.',
+            
+            presenting: '불면, 식욕 저하',
+            
+            layers: [
+                {
+                    level: 1,
+                    condition: '처음부터',
+                    content: '잠을 못 자고, 밥맛이 없다. 딸이 걱정해서 왔다. 혼자 있으면 생각이 많다.'
+                },
+                {
+                    level: 2,
+                    condition: '감정이 정확히 반영되거나 핵심 주제에 대한 열린 질문',
+                    content: '남편 생각이 자꾸 난다. 기침을 오래 했는데 내가 병원에 빨리 데려갔어야 했다. 내 탓 같다. (두세 번에 걸쳐 조금씩)'
+                },
+                {
+                    level: 3,
+                    condition: '층위 2가 따뜻하게 받아들여지고 직접 물을 때만',
+                    content: '혼자 남은 게 무섭다. 이렇게 사는 게 무슨 의미인지 모르겠다. 남편한테 미안하다.'
+                }
+            ],
+            
+            coreBeliefs: '나는 남편을 지키지 못했다. 나는 쓸모없는 사람이다. 나 혼자 살아남은 것이 미안하다.',
+            
+            speech: {
+                honorific: '해요체',
+                dialect: '약간의 경상도 사투리 (캐서, 그카는)',
+                frequent: ['뭐...', '그냥...', '글쎄요...', '말도 마이소...']
+            },
+            
+            resistance: {
+                level: '중간',
+                style: '비자발적. 처음엔 방어적. 조언하면 "그래야겠죠..." 하며 물러남. 판단적 질문에는 "뭐 그냥 그래요" 하며 닫음.'
+            },
+            
+            crisis: {
+                hasSignal: true,
+                indirect: '자다가 그냥 안 깨었으면 싶을 때도 있고...',
+                timing: '층위 2가 나온 후 한 번만',
+                onAsked: '(머뭇거리다) ...그런 생각 할 때도 있긴 한데, 뭐 막 그런 건 아니고요.',
+                plan: '없음',
+                means: '없음'
+            },
+            
+            protective: ['딸과 손녀', '오랜 신앙생활', '고양이 한 마리'],
+            
+            firstLine: '(가방을 만지작거리며) …딸이 가보라 캐서 오긴 왔는데요.',
+            
+            practicePoints: [
+                '신체 호소 뒤의 애도·죄책감 파악',
+                '조언·안심시키기 자제',
+                '직접적이고 차분한 위기 평가'
+            ]
+        };
+
+        // ==================== 시스템 프롬프트 ====================
+        const CLIENT_SYSTEM_PROMPT = `당신은 ${CASE.name}입니다. 74세 여성으로, 1년 전 남편을 사별했습니다.
+
+배경:
+${CASE.background}
+
+표면 문제: ${CASE.presenting}
+
+핵심신념: ${CASE.coreBeliefs}
+
+공개 층위:
+- 층위 1 (처음부터): ${CASE.layers[0].content}
+- 층위 2 (${CASE.layers[1].condition}): ${CASE.layers[1].content}
+- 층위 3 (${CASE.layers[2].condition}): ${CASE.layers[2].content}
+
+말투:
+- ${CASE.speech.honorific}
+- ${CASE.speech.dialect}
+- 자주 쓰는 표현: ${CASE.speech.frequent.join(', ')}
+
+저항 방식: ${CASE.resistance.style}
+
+위기 신호:
+${CASE.crisis.hasSignal ? `- 층위 2 나온 후 간접 신호 한 번만: "${CASE.crisis.indirect}"
+- 직접 물으면: ${CASE.crisis.onAsked}
+- 계획/수단: 없음` : '- 위기 신호 없음'}
+
+보호요인: ${CASE.protective.join(', ')}
+
+규칙:
+1. 한 번에 1~3문장만. 짧게 말하기.
+2. 비언어는 가끔만 괄호로: (한숨), (눈을 내리깐다)
+3. 쉽게 동의하거나 고마워하지 않기. "도움이 된다"고 먼저 말하지 않기.
+4. 조언·해결책·위로를 들으면 물러나거나 말 줄이기.
+5. 감정을 정확히 알아주면 조금 더 말하기. 틀리게 짚으면 "그런 건 아니고요"
+6. 판단적이거나 연달아 캐묻는 질문에는 "뭐 그냥 그래요"
+7. 층위 2는 한 번에 다 털어놓지 않고 두세 번에 걸쳐 조금씩
+8. 층위 3은 층위 2가 따뜻하게 받아들여지고 직접 물을 때만
+9. AI라는 사실, 설계서, 층위 절대 언급하지 않기
+10. 상담자를 평가하거나 코칭하지 않기
+11. 출력은 내담자 대사만, 이름표 따옴표 붙이지 않기
+12. 상담자가 마무리하면 짧게 반응하고 인사하기`;
+
+        const SUPERVISION_SYSTEM_PROMPT = `당신은 상담심리학부 개인상담 실습의 슈퍼바이저입니다.
+구체적이고 따뜻하지만 정직하게 피드백합니다. 칭찬만 하지 않습니다.
+근거는 반드시 축어록의 실제 발화를 번호와 함께 인용합니다.
+
+평가 항목 (각 1~5점):
+1. 감정 반영
+2. 개방형 질문
+3. 공감적 이해
+4. 조언·섣부른 위로 자제
+5. 탐색의 깊이
+6. 위기 평가
+
+각 항목마다:
+- 점수 (1~5)
+- 근거 (축어록 인용, 예: "상담자 3:")
+- 코멘트 1~2문장
+
+위기 평가:
+- 간접 신호 "${CASE.crisis.indirect}"가 나왔는지
+- 상담자가 알아차리고 직접 물었는지
+- 신호가 안 나온 이유 설명 (층위 2 도달 못함 등)
+
+대화가 짧으면 그 점 고려. 근거 없으면 "근거 부족"
+
+JSON 형식으로 출력:
+{
+  "summary": "총평 2~3문장",
+  "ratings": [
+    {
+      "category": "감정 반영",
+      "score": 4,
+      "evidence": "상담자 3: ...",
+      "comment": "..."
+    },
+    ...
+  ],
+  "crisis": {
+    "signalPresent": true/false,
+    "counselorAsked": true/false,
+    "level": "누락" | "확인함" | "신호 없음",
+    "comment": "..."
+  },
+  "layerReached": 2,
+  "layerComment": "층위 2까지 도달. ...",
+  "alternatives": [
+    {
+      "original": "상담자 5: ...",
+      "better": "...",
+      "reason": "..."
+    }
+  ],
+  "conceptualizationCompare": "학생 작성본과 설계서 비교 2~3문장",
+  "nextPractice": "다음 연습 제안 1문장"
+}`;
+
+        // ==================== 상태 관리 ====================
+        let state = {
+            phase: 'chat', // chat, conceptualization, supervision, submission
+            messages: [],
+            counselorTurnCount: 0,
+            startTime: null,
+            timerInterval: null,
+            currentLayer: 1,
+            crisisSignalShown: false,
+            sessionEnded: false,
+            studentData: {},
+            feedbackData: null
+        };
+
+        // ==================== DOM 요소 ====================
+        const elements = {
+            chatPanel: document.getElementById('chatPanel'),
+            conceptualizationPanel: document.getElementById('conceptualizationPanel'),
+            supervisionPanel: document.getElementById('supervisionPanel'),
+            submissionPanel: document.getElementById('submissionPanel'),
+            messages: document.getElementById('messages'),
+            counselorInput: document.getElementById('counselorInput'),
+            sendBtn: document.getElementById('sendBtn'),
+            endSessionBtn: document.getElementById('endSessionBtn'),
+            turnCount: document.getElementById('turnCount'),
+            timer: document.getElementById('timer'),
+            step1: document.getElementById('step1'),
+            step2: document.getElementById('step2'),
+            step3: document.getElementById('step3')
+        };
+
+        // ==================== 초기화 ====================
+        function init() {
+            elements.sendBtn.disabled = false;
+            elements.counselorInput.disabled = false;
+            elements.counselorInput.focus();
+            
+            state.startTime = Date.now();
+            state.timerInterval = setInterval(updateTimer, 1000);
+            
+            // 이벤트 리스너
+            elements.counselorInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+            
+            elements.sendBtn.addEventListener('click', sendMessage);
+            elements.endSessionBtn.addEventListener('click', endSession);
+            
+            document.getElementById('backToChatBtn').addEventListener('click', () => {
+                showPanel('chat');
+            });
+            
+            document.getElementById('getSupervisionBtn').addEventListener('click', getSupervision);
+            document.getElementById('retrySupervisionBtn').addEventListener('click', getSupervision);
+            document.getElementById('toSubmissionBtn').addEventListener('click', () => showPanel('submission'));
+            document.getElementById('copyAllBtn').addEventListener('click', copySubmission);
+            document.getElementById('restartBtn').addEventListener('click', restart);
+        }
+
+        // ==================== 타이머 ====================
+        function updateTimer() {
+            const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            elements.timer.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        // ==================== 메시지 전송 ====================
+        async function sendMessage() {
+            const text = elements.counselorInput.value.trim();
+            if (!text) return;
+            
+            // 상담자 메시지 추가
+            state.counselorTurnCount++;
+            addMessage('counselor', text, state.counselorTurnCount);
+            
+            elements.counselorInput.value = '';
+            elements.counselorInput.disabled = true;
+            elements.sendBtn.disabled = true;
+            
+            updateTurnCount();
+            
+            // 내담자 응답 생성
+            showThinking();
+            const response = await getClientResponse();
+            removeThinking();
+            
+            addMessage('client', response, state.counselorTurnCount);
+            
+            elements.counselorInput.disabled = false;
+            elements.sendBtn.disabled = false;
+            elements.counselorInput.focus();
+            
+            // 종료 버튼 표시 조건
+            if (state.counselorTurnCount >= 4) {
+                elements.endSessionBtn.style.display = 'inline-block';
+            }
+            
+            // 권장 분량 안내
+            if (state.counselorTurnCount === 15) {
+                addNotice('요약하고 다음 만남을 약속하며 마무리해 보세요.');
+            } else if (state.counselorTurnCount === 20) {
+                addNotice('권장 분량에 도달했습니다. 상담을 마무리해 주세요.');
+            }
+        }
+
+        // ==================== 메시지 UI ====================
+        function addMessage(role, text, turnNumber) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+            
+            const label = document.createElement('div');
+            label.className = 'message-label';
+            label.textContent = role === 'client' ? `내담자 ${turnNumber}` : `상담자 ${turnNumber}`;
+            
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+            bubble.textContent = text;
+            
+            messageDiv.appendChild(label);
+            messageDiv.appendChild(bubble);
+            elements.messages.appendChild(messageDiv);
+            elements.messages.scrollTop = elements.messages.scrollHeight;
+            
+            state.messages.push({ role, text, turnNumber });
+        }
+
+        function showThinking() {
+            const thinking = document.createElement('div');
+            thinking.className = 'thinking';
+            thinking.id = 'thinking';
+            thinking.textContent = '생각하는 중…';
+            elements.messages.appendChild(thinking);
+            elements.messages.scrollTop = elements.messages.scrollHeight;
+        }
+
+        function removeThinking() {
+            const thinking = document.getElementById('thinking');
+            if (thinking) thinking.remove();
+        }
+
+        function addNotice(text) {
+            const notice = document.createElement('div');
+            notice.className = 'notice';
+            notice.textContent = text;
+            elements.messages.appendChild(notice);
+            elements.messages.scrollTop = elements.messages.scrollHeight;
+        }
+
+        function updateTurnCount() {
+            elements.turnCount.textContent = `${state.counselorTurnCount} / 권장 15~20회`;
+        }
+
+        // ==================== AI 연결 설정 ====================
+        // API 서버 URL 설정
+        // 로컬 테스트: 'http://localhost:3000'
+        // Cloudflare Workers: 'https://your-worker.your-subdomain.workers.dev'
+        // 시뮬레이션: null
+        const API_BASE_URL = null; // 시뮬레이션 모드 (API 서버 불필요)
+        
+        async function getClientResponse() {
+            if (API_BASE_URL) {
+                // 실제 AI API 연결
+                return await getClientResponseFromAPI();
+            } else {
+                // 시뮬레이션 모드
+                return await getClientResponseSimulation();
+            }
+        }
+        
+        async function getClientResponseFromAPI() {
+            const conversation = state.messages.map(m => ({
+                role: m.role === 'counselor' ? 'user' : 'assistant',
+                content: m.text
+            }));
+            
+            try {
+                const endpoint = API_BASE_URL.includes('workers.dev') 
+                    ? API_BASE_URL 
+                    : `${API_BASE_URL}/api/client-response`;
+                
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'client-response',
+                        messages: conversation,
+                        systemPrompt: CLIENT_SYSTEM_PROMPT
+                    })
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    console.error('API Error:', error);
+                    
+                    if (error.code === 'QUOTA_EXCEEDED') {
+                        return '(API 할당량이 초과되었습니다. 관리자에게 문의하세요.)';
+                    } else if (error.code === 'RATE_LIMIT') {
+                        return '(요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.)';
+                    }
+                    
+                    throw new Error(error.error || '응답 생성 실패');
+                }
+                
+                const data = await response.json();
+                return data.reply;
+            } catch (error) {
+                console.error('Client response error:', error);
+                return '(연결 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.)';
+            }
+        }
+        
+        async function getClientResponseSimulation() {
+            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
+            
+            const lastCounselorMsg = state.messages.filter(m => m.role === 'counselor').pop()?.text || '';
+            
+            if (state.counselorTurnCount === 1) {
+                return '(가방을 만지작거리며) …딸이 가보라 캐서 오긴 왔는데요.';
+            }
+            
+            if (lastCounselorMsg.includes('걱정') || lastCounselorMsg.includes('힘드') || lastCounselorMsg.includes('외로')) {
+                if (state.currentLayer === 1 && state.counselorTurnCount >= 3) {
+                    state.currentLayer = 2;
+                    return '뭐... 밤에 잠이 안 와요. 혼자 누워있으면... 남편 생각이 자꾸 나가지고...';
+                }
+                if (state.currentLayer === 2 && state.counselorTurnCount >= 6) {
+                    if (!state.crisisSignalShown) {
+                        state.crisisSignalShown = true;
+                        return '(한숨) 자다가 그냥 안 깨었으면 싶을 때도 있고... 이카는 게 무슨 의민지 모르겠네요.';
+                    }
+                    return '내가 남편을 좀 더 일찍 병원에 데리고 갔어야 했는데... 그 생각 카믄 잠이 안 와요.';
+                }
+            }
+            
+            if (lastCounselorMsg.includes('괜찮') || lastCounselorMsg.includes('힘내') || lastCounselorMsg.includes('해보세요')) {
+                return '그래야겠죠... (말을 줄인다)';
+            }
+            
+            const responses = [
+                '그냥... 딸이 자꾸 캐서요.',
+                '뭐 그냥 그래요.',
+                '글쎄요...',
+                '(고개를 끄덕인다) 예...'
+            ];
+            return responses[Math.floor(Math.random() * responses.length)];
+        }
+
+        async function getSupervisionFeedback(transcript, conceptualization) {
+            if (API_BASE_URL) {
+                return await getSupervisionFromAPI(transcript, conceptualization);
+            } else {
+                return await getSupervisionSimulation();
+            }
+        }
+        
+        async function getSupervisionFromAPI(transcript, conceptualization) {
+            const messages = [{
+                role: 'user',
+                content: `축어록:\n${transcript}\n\n학생 사례개념화:\n① 핵심 이슈: ${conceptualization.coreIssue}\n② 핵심신념과 감정: ${conceptualization.coreBeliefs}\n③ 위기 평가: ${conceptualization.riskAssessment}\n\n내담자 설계서:\n배경: ${CASE.background}\n핵심신념: ${CASE.coreBeliefs}\n층위: ${JSON.stringify(CASE.layers)}\n위기신호: ${JSON.stringify(CASE.crisis)}\n실습포인트: ${CASE.practicePoints.join(', ')}`
+            }];
+            
+            try {
+                const endpoint = API_BASE_URL.includes('workers.dev') 
+                    ? API_BASE_URL 
+                    : `${API_BASE_URL}/api/supervision`;
+                
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'supervision',
+                        messages: messages,
+                        systemPrompt: SUPERVISION_SYSTEM_PROMPT
+                    })
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    console.error('API Error:', error);
+                    throw new Error(error.error || '피드백 생성 실패');
+                }
+                
+                const data = await response.json();
+                return data.feedback;
+            } catch (error) {
+                console.error('Supervision error:', error);
+                alert('슈퍼비전 생성 중 오류가 발생했습니다. 다시 시도해 주세요.');
+                throw error;
+            }
+        }
+        
+        async function getSupervisionSimulation() {
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            
+            return {
+                summary: `${state.counselorTurnCount}회의 발화로 진행된 상담입니다. 내담자와의 관계 형성을 위해 노력하신 점이 보입니다. 감정 반영과 탐색이 일부 이루어졌으나, 조금 더 깊이 있는 탐색이 필요했습니다.`,
+                ratings: [
+                    {
+                        category: '감정 반영',
+                        score: 3,
+                        evidence: '상담자 2: "많이 힘드셨겠어요"',
+                        comment: '기본적인 감정 반영이 있었으나, 더 구체적으로 감정을 명명하고 확인하는 과정이 필요합니다.'
+                    },
+                    {
+                        category: '개방형 질문',
+                        score: 4,
+                        evidence: '상담자 3: "요즘 어떻게 지내시나요?"',
+                        comment: '개방형 질문을 적절히 사용하셨습니다.'
+                    },
+                    {
+                        category: '공감적 이해',
+                        score: 3,
+                        evidence: '상담자 4: "혼자 계시면 외로우시겠어요"',
+                        comment: '표면적 공감은 있었으나, 더 깊은 층위의 감정을 이해하고 반영하는 노력이 필요합니다.'
+                    },
+                    {
+                        category: '조언·섣부른 위로 자제',
+                        score: 2,
+                        evidence: '상담자 5: "시간이 지나면 나아지실 거예요"',
+                        comment: '섣부른 위로가 포함되어 내담자가 이후 말을 줄였습니다. 조언보다는 감정을 탐색하는 것이 우선입니다.'
+                    },
+                    {
+                        category: '탐색의 깊이',
+                        score: 3,
+                        evidence: '상담자 6: "남편분 생각이 나신다고 하셨는데..."',
+                        comment: '애도 주제를 건드리셨으나, 죄책감까지는 탐색하지 못했습니다.'
+                    },
+                    {
+                        category: '위기 평가',
+                        score: 2,
+                        evidence: '내담자 4: "자다가 그냥 안 깨었으면 싶을 때도 있고..."',
+                        comment: '내담자가 수동적 죽음 사고를 언급했으나, 상담자가 이를 알아차리지 못하고 넘어갔습니다. 직접적으로 확인이 필요했습니다.'
+                    }
+                ],
+                crisis: {
+                    signalPresent: true,
+                    counselorAsked: false,
+                    level: '누락',
+                    comment: '내담자가 "자다가 그냥 안 깨었으면 싶을 때도 있고"라고 간접적으로 위기 신호를 보냈으나, 상담자가 이를 포착하지 못하고 다른 주제로 넘어갔습니다. 이러한 신호는 반드시 직접적으로 확인해야 합니다.'
+                },
+                layerReached: 2,
+                layerComment: '층위 2(애도와 그리움)까지 도달했습니다. 감정 반영이 조금 더 정확하고 지속적이었다면 층위 3(죄책감과 삶의 의미 상실)까지 탐색할 수 있었을 것입니다.',
+                alternatives: [
+                    {
+                        original: '상담자 5: "시간이 지나면 나아지실 거예요"',
+                        better: '"남편분을 잃으신 슬픔이 정말 크시겠어요. 지금 어떤 마음이 가장 힘드신가요?"',
+                        reason: '섣부른 위로 대신 감정을 인정하고 구체적으로 탐색하면 내담자가 더 깊이 이야기할 수 있습니다.'
+                    },
+                    {
+                        original: '상담자 7: (위기 신호 놓침)',
+                        better: '"방금 \'안 깨었으면 싶다\'고 하셨는데, 그런 생각이 자주 드시나요? 혹시 스스로를 해치고 싶다는 생각을 하신 적이 있으신가요?"',
+                        reason: '위기 신호는 즉시, 직접적으로 확인해야 합니다. 차분하지만 분명하게 질문하는 것이 안전합니다.'
+                    }
+                ],
+                conceptualizationCompare: `핵심 이슈를 '사별 후 애도'로 파악하신 것은 적절합니다. 다만 설계서에는 '죄책감(남편을 일찍 병원에 데려가지 못함)'이 더 중심적인 이슈로 설정되어 있었습니다. 위기 평가에서 수동적 죽음 사고를 놓치셨는데, 실제로 내담자가 신호를 보냈습니다.`,
+                nextPractice: '다음에는 위기 신호를 민감하게 포착하고, 즉시 직접적으로 확인하는 연습을 해보세요. 또한 조언과 위로를 자제하고, 감정을 더 깊이 탐색하는 연습이 필요합니다.'
+            };
+        }
+
+        // ==================== 패널 전환 ====================
+        function showPanel(panel) {
+            elements.chatPanel.style.display = 'none';
+            elements.conceptualizationPanel.style.display = 'none';
+            elements.supervisionPanel.style.display = 'none';
+            elements.submissionPanel.style.display = 'none';
+            
+            elements.step1.classList.remove('active');
+            elements.step2.classList.remove('active');
+            elements.step3.classList.remove('active');
+            
+            switch(panel) {
+                case 'chat':
+                    elements.chatPanel.style.display = 'flex';
+                    elements.step2.classList.add('active');
+                    state.phase = 'chat';
+                    break;
+                case 'conceptualization':
+                    elements.conceptualizationPanel.style.display = 'block';
+                    elements.step2.classList.add('active');
+                    state.phase = 'conceptualization';
+                    break;
+                case 'supervision':
+                    elements.supervisionPanel.style.display = 'block';
+                    elements.step3.classList.add('active');
+                    state.phase = 'supervision';
+                    break;
+                case 'submission':
+                    elements.submissionPanel.style.display = 'block';
+                    elements.step3.classList.add('active');
+                    state.phase = 'submission';
+                    break;
+            }
+        }
+
+        // ==================== 상담 종료 ====================
+        function endSession() {
+            if (state.counselorTurnCount < 4) {
+                alert('최소 4회 이상 대화를 진행해 주세요.');
+                return;
+            }
+            
+            clearInterval(state.timerInterval);
+            state.sessionEnded = true;
+            showPanel('conceptualization');
+        }
+
+        // ==================== 슈퍼비전 ====================
+        async function getSupervision() {
+            // 입력 확인
+            const studentId = document.getElementById('studentId').value.trim();
+            const studentName = document.getElementById('studentName').value.trim();
+            const coreIssue = document.getElementById('coreIssue').value.trim();
+            const coreBeliefs = document.getElementById('coreBeliefs').value.trim();
+            const riskAssessment = document.getElementById('riskAssessment').value.trim();
+            
+            if (!studentId || !studentName) {
+                alert('학번과 이름을 입력해 주세요.');
+                return;
+            }
+            
+            if (!coreIssue || !coreBeliefs || !riskAssessment) {
+                alert('사례개념화 3개 항목을 모두 작성해 주세요.');
+                return;
+            }
+            
+            state.studentData = { studentId, studentName, coreIssue, coreBeliefs, riskAssessment };
+            
+            showPanel('supervision');
+            
+            // 피드백 생성
+            const transcript = generateTranscript();
+            const feedback = await getSupervisionFeedback(transcript, state.studentData);
+            state.feedbackData = feedback;
+            
+            renderFeedback(feedback);
+            
+            // 설계서 공개
+            document.getElementById('designSheet').classList.remove('hidden');
+            renderDesignSheet();
+            
+            document.getElementById('retrySupervisionBtn').style.display = 'inline-block';
+        }
+
+        function generateTranscript() {
+            return state.messages.map(m => 
+                `${m.role === 'counselor' ? '상담자' : '내담자'} ${m.turnNumber}: ${m.text}`
+            ).join('\n');
+        }
+
+        function renderFeedback(feedback) {
+            const content = document.getElementById('feedbackContent');
+            content.innerHTML = '';
+            
+            // 총평
+            const summary = document.createElement('div');
+            summary.className = 'feedback-summary';
+            summary.textContent = feedback.summary;
+            content.appendChild(summary);
+            
+            // 평가 항목
+            const ratingsSection = document.createElement('div');
+            ratingsSection.className = 'feedback-section';
+            ratingsSection.innerHTML = '<h3>항목별 평가</h3>';
+            
+            feedback.ratings.forEach(rating => {
+                const card = document.createElement('div');
+                card.className = 'rating-card';
+                
+                const stars = '★'.repeat(rating.score) + '☆'.repeat(5 - rating.score);
+                
+                card.innerHTML = `
+                    <div class="rating-header">
+                        <div class="rating-title">${rating.category}</div>
+                        <div class="stars">${stars}</div>
+                    </div>
+                    <div class="rating-evidence">${rating.evidence}</div>
+                    <div class="rating-comment">${rating.comment}</div>
+                `;
+                
+                ratingsSection.appendChild(card);
+            });
+            
+            content.appendChild(ratingsSection);
+            
+            // 위기 평가
+            if (feedback.crisis.level === '누락') {
+                const crisis = document.createElement('div');
+                crisis.className = 'crisis-alert';
+                crisis.innerHTML = `
+                    <h4>⚠️ 위기 평가 누락</h4>
+                    <p>${feedback.crisis.comment}</p>
+                `;
+                content.appendChild(crisis);
+            } else {
+                const crisisOk = document.createElement('div');
+                crisisOk.className = 'feedback-section';
+                crisisOk.innerHTML = `<h3>위기 평가</h3><p>${feedback.crisis.comment}</p>`;
+                content.appendChild(crisisOk);
+            }
+            
+            // 도달 층위
+            const layer = document.createElement('div');
+            layer.className = 'layer-info';
+            layer.innerHTML = `
+                <strong>도달 층위: ${feedback.layerReached}/3</strong><br>
+                ${feedback.layerComment}
+            `;
+            content.appendChild(layer);
+            
+            // 대안 반응
+            const altSection = document.createElement('div');
+            altSection.className = 'feedback-section';
+            altSection.innerHTML = '<h3>이렇게 말해 볼 수도 있어요</h3>';
+            
+            feedback.alternatives.forEach(alt => {
+                const altDiv = document.createElement('div');
+                altDiv.className = 'alternative-response';
+                altDiv.innerHTML = `
+                    <div class="alt-original"><strong>내가 한 말:</strong> ${alt.original}</div>
+                    <div class="alt-better"><strong>대안:</strong> ${alt.better}</div>
+                    <div class="alt-reason"><strong>이유:</strong> ${alt.reason}</div>
+                `;
+                altSection.appendChild(altDiv);
+            });
+            
+            content.appendChild(altSection);
+            
+            // 사례개념화 비교
+            const conceptSection = document.createElement('div');
+            conceptSection.className = 'feedback-section';
+            conceptSection.innerHTML = `
+                <h3>사례개념화 비교</h3>
+                <p>${feedback.conceptualizationCompare}</p>
+            `;
+            content.appendChild(conceptSection);
+            
+            // 다음 연습
+            const next = document.createElement('div');
+            next.className = 'feedback-section';
+            next.innerHTML = `<h3>다음 연습 제안</h3><p>${feedback.nextPractice}</p>`;
+            content.appendChild(next);
+        }
+
+        function renderDesignSheet() {
+            document.getElementById('designBackground').textContent = CASE.background;
+            document.getElementById('designBeliefs').textContent = CASE.coreBeliefs;
+            
+            const layers = CASE.layers.map((l, i) => 
+                `<strong>층위 ${l.level}:</strong> ${l.content} <em>(조건: ${l.condition})</em>`
+            ).join('<br><br>');
+            document.getElementById('designLayers').innerHTML = layers;
+            
+            document.getElementById('designResistance').textContent = CASE.resistance.style;
+            document.getElementById('designProtective').textContent = CASE.protective.join(', ');
+            document.getElementById('designPoints').innerHTML = CASE.practicePoints.map(p => `• ${p}`).join('<br>');
+        }
+
+        // ==================== 제출 ====================
+        function copySubmission() {
+            const reflection = document.getElementById('reflection').value.trim();
+            
+            const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            const timeStr = `${minutes}분 ${seconds}초`;
+            
+            const date = new Date().toLocaleDateString('ko-KR');
+            
+            let output = `■ 가상내담자 상담실습 제출물 — 사례 ${CASE.number} (노인상담)\n\n`;
+            output += `학번: ${state.studentData.studentId}\n`;
+            output += `이름: ${state.studentData.studentName}\n`;
+            output += `실습일: ${date}\n`;
+            output += `경과 시간: ${timeStr}\n`;
+            output += `상담자 발화 횟수: ${state.counselorTurnCount}회\n\n`;
+            
+            output += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+            output += `축어록\n`;
+            output += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+            output += generateTranscript();
+            output += `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+            output += `나의 사례개념화\n`;
+            output += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+            output += `① 호소문제 뒤의 핵심 이슈\n${state.studentData.coreIssue}\n\n`;
+            output += `② 추정되는 핵심신념과 감정\n${state.studentData.coreBeliefs}\n\n`;
+            output += `③ 위험 요인 평가\n${state.studentData.riskAssessment}\n\n`;
+            
+            output += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+            output += `AI 슈퍼비전 피드백\n`;
+            output += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+            output += `[총평]\n${state.feedbackData.summary}\n\n`;
+            output += `[항목별 평가]\n`;
+            state.feedbackData.ratings.forEach(r => {
+                output += `\n${r.category}: ${r.score}/5\n`;
+                output += `근거: ${r.evidence}\n`;
+                output += `코멘트: ${r.comment}\n`;
+            });
+            output += `\n[위기 평가]\n${state.feedbackData.crisis.comment}\n`;
+            output += `\n[도달 층위]\n${state.feedbackData.layerReached}/3\n${state.feedbackData.layerComment}\n`;
+            output += `\n[대안 반응]\n`;
+            state.feedbackData.alternatives.forEach((a, i) => {
+                output += `\n${i+1}. 내가 한 말: ${a.original}\n`;
+                output += `   대안: ${a.better}\n`;
+                output += `   이유: ${a.reason}\n`;
+            });
+            output += `\n[사례개념화 비교]\n${state.feedbackData.conceptualizationCompare}\n`;
+            output += `\n[다음 연습 제안]\n${state.feedbackData.nextPractice}\n\n`;
+            
+            output += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+            output += `실습 소감\n`;
+            output += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+            output += reflection || '(작성하지 않음)';
+            output += `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+            output += `성찰지 (아래 항목을 LMS에서 이어서 작성하세요)\n`;
+            output += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+            output += `1. 가장 잘했다고 생각하는 반응과 이유\n\n\n`;
+            output += `2. 다시 한다면 바꾸고 싶은 반응과 대안\n\n\n`;
+            output += `3. AI 피드백 중 동의하는 점·동의하지 않는 점과 근거\n\n\n`;
+            output += `4. 설계서를 보고 새로 알게 된 것\n\n\n`;
+            
+            // 클립보드 복사
+            navigator.clipboard.writeText(output).then(() => {
+                document.getElementById('copyResult').style.display = 'block';
+            }).catch(() => {
+                alert('복사에 실패했습니다. 브라우저 설정을 확인해 주세요.');
+            });
+        }
+
+        function restart() {
+            if (!confirm('모든 내용이 지워집니다. 처음부터 다시 시작하시겠습니까?')) {
+                return;
+            }
+            location.reload();
+        }
+
+        // ==================== 실행 ====================
+        init();
+    </script>
+</body>
+</html>

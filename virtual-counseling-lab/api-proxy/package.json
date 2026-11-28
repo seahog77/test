@@ -1,0 +1,30 @@
+{
+  "name": "virtual-counseling-lab-api",
+  "version": "1.0.0",
+  "description": "API proxy server for Virtual Counseling Lab",
+  "main": "express-server.js",
+  "scripts": {
+    "start": "node express-server.js",
+    "dev": "NODE_ENV=development nodemon express-server.js"
+  },
+  "keywords": [
+    "counseling",
+    "education",
+    "ai",
+    "psychology"
+  ],
+  "author": "Cyber Hankuk University of Foreign Studies",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "openai": "^4.20.0",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
